@@ -4,7 +4,11 @@ A small starting point for the game logic.
 
 ## Current Logic
 
-Each player rolls six six-sided dice, then the game outputs every player's result.
+Each player starts by rolling six six-sided dice.
+
+After every roll, the player keeps all dice matching one number, then rerolls the rest.
+The default strategy keeps the number that appears most often. If multiple numbers are
+tied, it keeps the lowest tied number. This repeats until all six dice are kept.
 
 Run it with:
 
