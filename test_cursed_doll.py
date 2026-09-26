@@ -3,11 +3,19 @@ import unittest
 from dice import FACE_VALUES, count_dolls
 from game import (
     INITIAL_PLAYER_DOLLS,
+    choose_gift_recipient_interactively,
+    choose_room_interactively,
     create_doll_rooms,
+    fullest_adjustable_room,
+    fullest_adjustable_rooms,
     format_game_result,
+    give_dolls_for_ones,
+    move_extra_dolls_for_all_players,
+    move_extra_dolls_to_room_eleven,
     place_dolls_for_turn,
     play_game,
     play_game_turns_for_players,
+    resolve_turn_effects,
     room_for_total,
 )
 from player_turn import (
@@ -196,23 +204,73 @@ class RollDiceForPlayersTest(unittest.TestCase):
         self.assertEqual(11, room_for_total(11))
         self.assertEqual(11, room_for_total(14))
 
-    def test_places_rolled_dolls_into_matching_room(self):
+    def test_rooms_start_with_one_doll_in_rooms_seven_to_ten(self):
+        self.assertEqual(
+            {7: 1, 8: 1, 9: 1, 10: 1, 11: 0},
+            create_doll_rooms(),
+        )
+
+    def test_fullest_adjustable_room_chooses_lowest_room_on_tie(self):
         rooms = create_doll_rooms()
+        rooms[7] = 2
+        rooms[8] = 3
+        rooms[9] = 3
+        rooms[10] = 1
+
+        self.assertEqual(8, fullest_adjustable_room(rooms))
+
+    def test_fullest_adjustable_rooms_returns_every_tied_fullest_room(self):
+        rooms = create_doll_rooms()
+        rooms[7] = 2
+        rooms[8] = 5
+        rooms[9] = 3
+        rooms[10] = 5
+
+        self.assertEqual([8, 10], fullest_adjustable_rooms(rooms))
+
+    def test_adjusts_room_up_to_rolled_doll_count(self):
+        rooms = create_doll_rooms()
+        rooms[8] = 2
         turn_result = {
             "kept_total": 8,
             "kept_dice": ["one doll", "two dolls", "3", "3", "2"],
-            "dolls_rolled": 3,
+            "dolls_rolled": 4,
         }
 
         placement = place_dolls_for_turn(turn_result, INITIAL_PLAYER_DOLLS, rooms)
 
-        self.assertEqual(3, rooms[8])
+        self.assertEqual(4, rooms[8])
         self.assertEqual(8, placement["target_room"])
-        self.assertEqual(3, placement["dolls_placed"])
-        self.assertEqual(7, placement["dolls_remaining"])
+        self.assertEqual(2, placement["dolls_placed"])
+        self.assertEqual(0, placement["dolls_returned"])
+        self.assertEqual(8, placement["dolls_remaining"])
 
-    def test_does_not_place_dolls_when_total_is_below_seven(self):
+    def test_adjusts_room_down_and_returns_dolls_to_player(self):
         rooms = create_doll_rooms()
+        rooms[9] = 2
+        turn_result = {
+            "kept_total": 9,
+            "kept_dice": ["one doll", "4", "3", "2"],
+            "dolls_rolled": 1,
+        }
+
+        placement = place_dolls_for_turn(turn_result, INITIAL_PLAYER_DOLLS, rooms)
+
+        self.assertEqual(1, rooms[9])
+        self.assertEqual(9, placement["target_room"])
+        self.assertEqual(0, placement["dolls_placed"])
+        self.assertEqual(1, placement["dolls_returned"])
+        self.assertEqual(1, placement["overflow_dolls"])
+        self.assertEqual(1, rooms[11])
+        self.assertEqual(10, placement["dolls_remaining"])
+
+    def test_total_below_seven_returns_all_dolls_from_fullest_room(self):
+        rooms = create_doll_rooms()
+        rooms[7] = 2
+        rooms[8] = 5
+        rooms[9] = 3
+        rooms[10] = 5
+        rooms[11] = 9
         turn_result = {
             "kept_total": 6,
             "kept_dice": ["one doll", "two dolls", "4", "2"],
@@ -221,13 +279,46 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
         placement = place_dolls_for_turn(turn_result, INITIAL_PLAYER_DOLLS, rooms)
 
-        self.assertEqual(create_doll_rooms(), rooms)
-        self.assertIsNone(placement["target_room"])
+        self.assertEqual(0, rooms[8])
+        self.assertEqual(5, rooms[10])
+        self.assertEqual(14, rooms[11])
+        self.assertEqual(8, placement["target_room"])
         self.assertEqual(0, placement["dolls_placed"])
+        self.assertEqual(5, placement["dolls_returned"])
+        self.assertEqual(5, placement["overflow_dolls"])
         self.assertEqual(10, placement["dolls_remaining"])
 
-    def test_places_total_eleven_or_more_into_room_eleven(self):
+    def test_total_below_seven_can_choose_tied_fullest_room(self):
         rooms = create_doll_rooms()
+        rooms[7] = 2
+        rooms[8] = 5
+        rooms[9] = 3
+        rooms[10] = 5
+        turn_result = {
+            "kept_total": 6,
+            "kept_dice": ["4", "2"],
+            "dolls_rolled": 0,
+        }
+
+        def choose_room(tied_rooms, **_context):
+            self.assertEqual([8, 10], tied_rooms)
+            return 10
+
+        placement = place_dolls_for_turn(
+            turn_result,
+            INITIAL_PLAYER_DOLLS,
+            rooms,
+            choose_room=choose_room,
+        )
+
+        self.assertEqual(5, rooms[8])
+        self.assertEqual(0, rooms[10])
+        self.assertEqual(10, placement["target_room"])
+        self.assertEqual((8, 10), placement["tied_rooms"])
+
+    def test_total_eleven_or_more_adds_to_room_eleven(self):
+        rooms = create_doll_rooms()
+        rooms[11] = 2
         turn_result = {
             "kept_total": 12,
             "kept_dice": ["two dolls", "4", "4", "4"],
@@ -236,9 +327,10 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
         placement = place_dolls_for_turn(turn_result, INITIAL_PLAYER_DOLLS, rooms)
 
-        self.assertEqual(2, rooms[11])
+        self.assertEqual(4, rooms[11])
         self.assertEqual(11, placement["target_room"])
         self.assertEqual(2, placement["dolls_placed"])
+        self.assertEqual(0, placement["dolls_returned"])
 
     def test_cannot_place_more_dolls_than_player_has(self):
         rooms = create_doll_rooms()
@@ -250,9 +342,121 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
         placement = place_dolls_for_turn(turn_result, 3, rooms)
 
-        self.assertEqual(3, rooms[7])
+        self.assertEqual(4, rooms[7])
         self.assertEqual(3, placement["dolls_placed"])
+        self.assertEqual(0, placement["dolls_returned"])
         self.assertEqual(0, placement["dolls_remaining"])
+
+    def test_extra_dolls_above_ten_move_to_room_eleven(self):
+        rooms = create_doll_rooms()
+
+        overflow = move_extra_dolls_to_room_eleven(13, rooms)
+
+        self.assertEqual(3, overflow["overflow_dolls"])
+        self.assertEqual(10, overflow["dolls_remaining"])
+        self.assertEqual(3, rooms[11])
+
+    def test_extra_dolls_above_ten_move_for_all_players(self):
+        rooms = create_doll_rooms()
+        player_dolls = {1: 10, 2: 12, 3: 11}
+
+        overflows = move_extra_dolls_for_all_players(player_dolls, rooms)
+
+        self.assertEqual({2: 2, 3: 1}, overflows)
+        self.assertEqual({1: 10, 2: 10, 3: 10}, player_dolls)
+        self.assertEqual(3, rooms[11])
+
+    def test_ones_can_gift_after_player_places_dolls(self):
+        turn_result = {
+            "kept_total": 8,
+            "kept_dice": ["1", "1", "3", "3", "one doll", "two dolls"],
+        }
+        player_dolls = {1: 7, 2: 9}
+
+        gift = give_dolls_for_ones(turn_result, 1, player_dolls, dolls_placed=3)
+
+        self.assertEqual(2, gift["ones_rolled"])
+        self.assertEqual(2, gift["gifted_dolls"])
+        self.assertEqual(2, gift["gift_recipient"])
+        self.assertEqual({2: 2}, gift["gift_recipients"])
+        self.assertEqual({1: 5, 2: 11}, player_dolls)
+
+    def test_ones_do_not_gift_when_no_dolls_were_placed(self):
+        turn_result = {
+            "kept_total": 9,
+            "kept_dice": ["1", "4", "4"],
+        }
+        player_dolls = {1: 10, 2: 8}
+
+        gift = give_dolls_for_ones(turn_result, 1, player_dolls, dolls_placed=0)
+
+        self.assertEqual(1, gift["ones_rolled"])
+        self.assertEqual(0, gift["gifted_dolls"])
+        self.assertIsNone(gift["gift_recipient"])
+        self.assertEqual({}, gift["gift_recipients"])
+        self.assertEqual({1: 10, 2: 8}, player_dolls)
+
+    def test_interactive_gift_can_choose_recipients_and_stop(self):
+        turn_result = {
+            "kept_total": 8,
+            "kept_dice": ["1", "1", "1", "3", "3", "one doll"],
+        }
+        player_dolls = {1: 8, 2: 9, 3: 6}
+        choices = iter([3, 2, None])
+
+        def choose_gift_recipient(available_recipients, **context):
+            self.assertEqual([2, 3], available_recipients)
+            self.assertEqual(3, context["gift_limit"])
+            return next(choices)
+
+        gift = give_dolls_for_ones(
+            turn_result,
+            1,
+            player_dolls,
+            dolls_placed=2,
+            choose_gift_recipient=choose_gift_recipient,
+        )
+
+        self.assertEqual(2, gift["gifted_dolls"])
+        self.assertIsNone(gift["gift_recipient"])
+        self.assertEqual({2: 1, 3: 1}, gift["gift_recipients"])
+        self.assertEqual({1: 6, 2: 10, 3: 7}, player_dolls)
+
+    def test_gift_after_placement_can_overflow_recipient_to_room_eleven(self):
+        rooms = create_doll_rooms()
+        rooms[8] = 1
+        player_dolls = {1: 10, 2: 10}
+        turn_result = {
+            "kept_total": 8,
+            "kept_dice": ["1", "1", "3", "3", "one doll", "two dolls"],
+            "dolls_rolled": 3,
+        }
+
+        turn = resolve_turn_effects(1, turn_result, player_dolls, rooms)
+
+        self.assertEqual(3, rooms[8])
+        self.assertEqual(2, turn["dolls_placed"])
+        self.assertEqual(2, turn["gifted_dolls"])
+        self.assertEqual(2, turn["gift_recipient"])
+        self.assertEqual({2: 2}, turn["gift_recipients"])
+        self.assertEqual({2: 2}, turn["overflow_dolls_by_player"])
+        self.assertEqual(2, rooms[11])
+        self.assertEqual({1: 6, 2: 10}, player_dolls)
+        self.assertEqual(6, turn["dolls_remaining"])
+
+    def test_single_player_does_not_gift_for_ones(self):
+        turn_result = {
+            "kept_total": 8,
+            "kept_dice": ["1", "1", "3", "3", "one doll"],
+        }
+        player_dolls = {1: 8}
+
+        gift = give_dolls_for_ones(turn_result, 1, player_dolls, dolls_placed=1)
+
+        self.assertEqual(2, gift["ones_rolled"])
+        self.assertEqual(0, gift["gifted_dolls"])
+        self.assertIsNone(gift["gift_recipient"])
+        self.assertEqual({1: 8}, player_dolls)
 
     def test_game_turns_update_rooms_for_each_player(self):
         rng = FixedRng([
@@ -275,7 +479,7 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
         self.assertEqual(3, game_result["rooms"][7])
         self.assertEqual(2, game_result["rooms"][11])
-        self.assertEqual(7, game_result["players"][0]["dolls_remaining"])
+        self.assertEqual(8, game_result["players"][0]["dolls_remaining"])
         self.assertEqual(8, game_result["players"][1]["dolls_remaining"])
 
     def test_later_player_prompt_context_sees_updated_doll_state(self):
@@ -300,21 +504,20 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
         play_game_turns_for_players(2, rng=rng, choose_face=choose_face)
 
-        self.assertEqual(7, second_player_context["player_dolls"][1])
+        self.assertEqual(8, second_player_context["player_dolls"][1])
         self.assertEqual(10, second_player_context["player_dolls"][2])
         self.assertEqual(3, second_player_context["rooms"][7])
 
     def test_game_ends_when_a_player_has_no_dolls(self):
         rng = FixedRng([
-            6, 6, 6, 4, 3, 1,
-            4, 3, 1,
-            3, 1,
-            1, 1, 1, 1, 1, 1,
-            6, 6, 4, 3, 1, 2,
-            4, 3, 1, 2,
-            3, 1, 2,
+            6, 6, 6, 5, 4, 3,
+            4, 4, 5,
+            4, 4,
+            4, 4, 4, 1, 1, 1,
+            6, 6, 4, 4, 4, 1,
+            4, 4, 4, 1,
         ])
-        choices = iter(["two dolls", "4", "3", "1", "two dolls", "4", "3"])
+        choices = iter(["two dolls", "one doll", "4", "4", "two dolls", "4"])
 
         def choose_face(roll, **_context):
             choice = next(choices)
@@ -327,9 +530,12 @@ class RollDiceForPlayersTest(unittest.TestCase):
         self.assertEqual(1, game_result["winner"])
         self.assertEqual(3, len(game_result["turns"]))
         self.assertEqual(4, game_result["turns"][0]["dolls_remaining"])
+        self.assertEqual(10, game_result["turns"][1]["starting_dolls"])
         self.assertEqual(10, game_result["turns"][1]["dolls_remaining"])
         self.assertEqual(0, game_result["turns"][2]["dolls_remaining"])
-        self.assertEqual(10, game_result["rooms"][7])
+        self.assertEqual(1, game_result["rooms"][7])
+        self.assertEqual(7, game_result["rooms"][8])
+        self.assertEqual(4, game_result["rooms"][11])
         self.assertEqual(0, game_result["player_dolls"][1])
         self.assertEqual(10, game_result["player_dolls"][2])
 
@@ -403,6 +609,73 @@ class RollDiceForPlayersTest(unittest.TestCase):
         self.assertIn("Kept total: 8", output)
         self.assertIn("Remaining : 2 dice", output)
         self.assertIn("Stop now and ignore the remaining dice? [y/n]", output)
+
+    def test_choose_room_interactively_accepts_lettered_choice(self):
+        prompts = []
+        output = []
+
+        def fake_input(prompt):
+            prompts.append(prompt)
+            return "b"
+
+        result = choose_room_interactively(
+            [8, 10],
+            player_index=1,
+            turn_result={"kept_total": 6, "kept_dice": ["4", "2"]},
+            player_dolls={1: 10, 2: 8},
+            rooms={7: 1, 8: 5, 9: 3, 10: 5, 11: 0},
+            input_fn=fake_input,
+            output_fn=output.append,
+        )
+
+        self.assertEqual(10, result)
+        self.assertEqual(["Room > "], prompts)
+        self.assertIn("Player 1 - choose a room", output)
+        self.assertIn("Total is 6 or less. Take all dolls from one fullest room.", output)
+        self.assertIn("  [a] Room 8: 5 dolls", output)
+        self.assertIn("  [b] Room 10: 5 dolls", output)
+
+    def test_choose_gift_recipient_interactively_can_stop(self):
+        prompts = []
+        output = []
+
+        def fake_input(prompt):
+            prompts.append(prompt)
+            return "a"
+
+        result = choose_gift_recipient_interactively(
+            [2, 3],
+            gift_number=1,
+            gift_limit=2,
+            player_index=1,
+            turn_result={"kept_dice": ["1", "1", "3", "3"]},
+            player_dolls={1: 8, 2: 10, 3: 6},
+            rooms={7: 1, 8: 2, 9: 1, 10: 1, 11: 0},
+            input_fn=fake_input,
+            output_fn=output.append,
+        )
+
+        self.assertIsNone(result)
+        self.assertEqual(["Gift doll > "], prompts)
+        self.assertIn("Player 1 - give a doll", output)
+        self.assertIn("Giving is optional. Choose a player or stop giving.", output)
+        self.assertIn("  [a] Stop giving", output)
+        self.assertIn("  [b] Player 2", output)
+        self.assertIn("  [c] Player 3", output)
+
+    def test_choose_gift_recipient_interactively_accepts_player_letter(self):
+        def fake_input(_prompt):
+            return "c"
+
+        result = choose_gift_recipient_interactively(
+            [2, 3],
+            gift_number=1,
+            gift_limit=2,
+            input_fn=fake_input,
+            output_fn=lambda _message: None,
+        )
+
+        self.assertEqual(3, result)
 
     def test_two_players_can_use_interactive_choices(self):
         rng = FixedRng([
