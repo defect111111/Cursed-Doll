@@ -1,7 +1,7 @@
 import unittest
 
-from cursed_doll import (
-    FACE_VALUES,
+from dice import FACE_VALUES, count_dolls
+from player_turn import (
     choose_face_interactively,
     choose_face_to_keep,
     choose_stop_interactively,
@@ -37,6 +37,7 @@ class RollDiceForPlayersTest(unittest.TestCase):
                     "remaining_dice": 4,
                     "can_stop": False,
                     "stopped": False,
+                    "ended_because_no_pattern": False,
                 },
                 {
                     "roll": ["3", "3", "one doll", "two dolls"],
@@ -46,6 +47,7 @@ class RollDiceForPlayersTest(unittest.TestCase):
                     "remaining_dice": 2,
                     "can_stop": True,
                     "stopped": True,
+                    "ended_because_no_pattern": False,
                 },
             ],
             results[0]["turns"],
@@ -58,6 +60,9 @@ class RollDiceForPlayersTest(unittest.TestCase):
     def test_doll_faces_do_not_add_to_the_kept_total(self):
         self.assertEqual(0, FACE_VALUES["one doll"])
         self.assertEqual(0, FACE_VALUES["two dolls"])
+
+    def test_counts_dolls_in_roll(self):
+        self.assertEqual(3, count_dolls(["1", "one doll", "two dolls", "4"]))
 
     def test_player_can_stop_when_kept_total_is_larger_than_seven(self):
         rng = FixedRng([4, 4, 4, 1, 2, 3])
@@ -121,12 +126,15 @@ class RollDiceForPlayersTest(unittest.TestCase):
         )
 
         self.assertEqual(
-            "Player 1:\n"
-            "  Roll 1: rolled [1, 1, 2, 3, 4, two dolls], kept [1, 1], total 2, 4 dice remaining\n"
-            "  Roll 2: rolled [2, 2, 4], kept [2, 2], total 6, 1 die remaining\n"
-            "  Roll 3: rolled [one doll], kept [one doll], total 6, 0 dice remaining\n"
-            "  Final kept dice: 1, 1, 2, 2, one doll\n"
-            "  Final kept total: 6",
+            "========================================================\n"
+            "Player 1 result\n"
+            "--------------------------------------------------------\n"
+            "Roll 1: rolled [1, 1, 2, 3, 4, two dolls] | kept [1, 1] | total 2 | 4 dice remaining\n"
+            "Roll 2: rolled [2, 2, 4] | kept [2, 2] | total 6 | 1 die remaining\n"
+            "Roll 3: rolled [one doll] | kept [one doll] | total 6 | 0 dice remaining\n"
+            "--------------------------------------------------------\n"
+            "Final kept dice : [1, 1, 2, 2, one doll]\n"
+            "Final kept total: 6",
             output,
         )
 
@@ -135,6 +143,38 @@ class RollDiceForPlayersTest(unittest.TestCase):
 
     def test_choose_face_can_go_over_seven_to_stop(self):
         self.assertEqual("4", choose_face_to_keep(["4", "4", "one doll"], kept_total=5))
+
+    def test_choose_face_cannot_reuse_reserved_pattern(self):
+        self.assertEqual(
+            "2",
+            choose_face_to_keep(
+                ["2", "2", "3", "3", "4"],
+                kept_total=3,
+                used_faces=["3"],
+            ),
+        )
+
+    def test_turn_ends_when_no_new_pattern_is_available(self):
+        rng = FixedRng([1, 1, 1, 1, 1, 2, 1])
+
+        results = roll_dice_for_players(1, rng=rng)
+
+        self.assertEqual(
+            {
+                "roll": ["1"],
+                "kept_face": None,
+                "kept_dice": [],
+                "kept_total": 5,
+                "remaining_dice": 1,
+                "can_stop": False,
+                "stopped": True,
+                "ended_because_no_pattern": True,
+            },
+            results[0]["turns"][1],
+        )
+        self.assertEqual(["1", "1", "1", "1", "1"], results[0]["kept_dice"])
+        self.assertEqual(0, results[0]["ignored_dice"])
+        self.assertTrue(results[0]["ended_because_no_pattern"])
 
     def test_choose_face_interactively_accepts_lettered_choice(self):
         prompts = []
@@ -149,16 +189,20 @@ class RollDiceForPlayersTest(unittest.TestCase):
             kept_total=2,
             player_index=2,
             kept_dice=["3"],
+            used_faces=["3"],
             input_fn=fake_input,
             output_fn=output.append,
         )
 
         self.assertEqual("1", result)
-        self.assertEqual(["> "], prompts)
-        self.assertIn("Player 2", output)
-        self.assertIn("Kept so far: [3]", output)
-        self.assertIn("Rolled: 1, 1, 3, one doll", output)
-        self.assertIn("  b. 1 x2 (adds 2, total would be 4)", output)
+        self.assertEqual(["Keep pattern > "], prompts)
+        self.assertIn("Player 2 - choose a pattern", output)
+        self.assertIn("Kept dice        : [3]", output)
+        self.assertIn("Reserved patterns: [3]", output)
+        self.assertIn("Roll             : [1, 1, 3, one doll]", output)
+        self.assertIn("Dolls rolled     : 1", output)
+        self.assertIn("  [b] 1 x2 | adds 2 | total -> 4", output)
+        self.assertNotIn("  [c] 3 x1 | adds 3 | total -> 5", output)
 
     def test_choose_stop_interactively_accepts_yes(self):
         prompts = []
@@ -178,10 +222,12 @@ class RollDiceForPlayersTest(unittest.TestCase):
                 output_fn=output.append,
             )
         )
-        self.assertEqual(["> "], prompts)
-        self.assertIn("Player 1", output)
-        self.assertIn("Kept so far: [4, 4]", output)
-        self.assertIn("Kept total is 8. Stop and ignore 2 dice? [y/n]", output)
+        self.assertEqual(["Stop? > "], prompts)
+        self.assertIn("Player 1 - stop check", output)
+        self.assertIn("Kept dice : [4, 4]", output)
+        self.assertIn("Kept total: 8", output)
+        self.assertIn("Remaining : 2 dice", output)
+        self.assertIn("Stop now and ignore the remaining dice? [y/n]", output)
 
     def test_two_players_can_use_interactive_choices(self):
         rng = FixedRng([
@@ -190,7 +236,7 @@ class RollDiceForPlayersTest(unittest.TestCase):
             1, 2, 3, 4, 5, 6,
             4, 4, 4, 4, 4,
         ])
-        choices = iter(["e", "c", "y", "f", "a"])
+        choices = iter(["e", "c", "y", "e", "a"])
 
         def fake_input(prompt):
             return next(choices)
@@ -224,8 +270,8 @@ class RollDiceForPlayersTest(unittest.TestCase):
         self.assertEqual(["3", "3", "4", "4"], results[0]["kept_dice"])
         self.assertEqual(14, results[0]["kept_total"])
         self.assertEqual(2, results[0]["ignored_dice"])
-        self.assertEqual(["4", "4", "4", "4", "4", "4"], results[1]["kept_dice"])
-        self.assertEqual(24, results[1]["kept_total"])
+        self.assertEqual(["3", "4", "4", "4", "4", "4"], results[1]["kept_dice"])
+        self.assertEqual(23, results[1]["kept_total"])
         self.assertEqual(0, results[1]["ignored_dice"])
 
     def test_requires_at_least_one_player(self):
