@@ -1,0 +1,9 @@
+name: cursed-doll-web
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - fastapi==0.115.6
+      - uvicorn[standard]==0.34.0

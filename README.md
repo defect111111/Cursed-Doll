@@ -1,6 +1,17 @@
 # Cursed Doll
 
-A small starting point for the game logic.
+A dice-and-doll table game with a command-line version and a playable local web
+frontend.
+
+## Version
+
+Current version: `v2.0`
+
+`v2.0` adds the first playable web frontend: a FastAPI backend for game state,
+a Vite React table UI, local development setup, and clearer startup diagnostics.
+
+`v1.0` is the complete command-line rule implementation with interactive choices
+for dice patterns, stopping, tied rooms, and optional doll gifts.
 
 ## Current Logic
 
@@ -81,9 +92,62 @@ For repeatable rolls while testing:
 python cursed_doll.py 2 --seed 42
 ```
 
+## Web Frontend
+
+Version `v2.0` includes the first web version. It uses a FastAPI backend with the
+existing Python game rules, plus a Vite React frontend.
+
+Create or update the backend environment:
+
+```bash
+conda env create -f environment.yml
+```
+
+If the environment already exists:
+
+```bash
+conda env update -f environment.yml --prune
+```
+
+Install frontend packages:
+
+```bash
+npm install
+```
+
+Run the backend:
+
+```bash
+conda run -n cursed-doll-web uvicorn web_backend:app --reload --host 127.0.0.1 --port 8000
+```
+
+Run the frontend in another terminal:
+
+```bash
+npm run dev
+```
+
+Then open `http://127.0.0.1:5173`.
+
+If port `8000` or `5173` is already in use, choose another port and restart the
+server that changed. For example, to run the backend on `8001` and the frontend
+on `5174` in PowerShell:
+
+```powershell
+conda run -n cursed-doll-web uvicorn web_backend:app --reload --host 127.0.0.1 --port 8001
+$env:CURSED_DOLL_API_TARGET="http://127.0.0.1:8001"; npm run dev -- --port 5174
+```
+
+The frontend calls the backend through `/api`, so Vite must be restarted after
+changing `vite.config.js` or `CURSED_DOLL_API_TARGET`. To check the backend
+directly, open `http://127.0.0.1:8000/api/health`. The backend root
+`http://127.0.0.1:8000/` only shows API information.
+
 ## Code Structure
 
 - `dice.py`: die faces, die values, rolling helpers, and dice formatting.
 - `player_turn.py`: player choices, stop rules, turn progression, and result formatting.
 - `game.py`: player doll supply, doll rooms, and room placement rules.
 - `cursed_doll.py`: command-line entry point.
+- `web_backend.py`: FastAPI game state API for the web frontend.
+- `src/`: React frontend for the playable table UI.
