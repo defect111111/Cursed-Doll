@@ -17,6 +17,41 @@ DIVIDER = "-" * 56
 HEADER_DIVIDER = "=" * 56
 
 
+def format_room_state(rooms):
+    if not rooms:
+        return []
+    return [f"  Room {room}: {rooms[room]} dolls" for room in sorted(rooms)]
+
+
+def format_player_doll_state(player_dolls):
+    if player_dolls is None:
+        return []
+    if isinstance(player_dolls, dict):
+        return [
+            f"  Player {player_index}: {player_dolls[player_index]} dolls"
+            for player_index in sorted(player_dolls)
+        ]
+    return [f"  Current player: {player_dolls} dolls"]
+
+
+def output_game_state(player_dolls, rooms, output_fn):
+    player_lines = format_player_doll_state(player_dolls)
+    room_lines = format_room_state(rooms)
+
+    if player_lines:
+        output_fn("Player dolls:")
+        for line in player_lines:
+            output_fn(line)
+
+    if room_lines:
+        output_fn("Doll rooms:")
+        for line in room_lines:
+            output_fn(line)
+
+    if player_lines or room_lines:
+        output_fn(DIVIDER)
+
+
 def choose_face_to_keep(roll, kept_total=0, used_faces=None, **_context):
     available_faces = available_faces_for_roll(roll, used_faces=used_faces)
     if not available_faces:
@@ -59,6 +94,8 @@ def choose_face_interactively(
     player_index=None,
     kept_dice=None,
     used_faces=None,
+    player_dolls=None,
+    rooms=None,
     input_fn=input,
     output_fn=print,
 ):
@@ -77,6 +114,7 @@ def choose_face_interactively(
     else:
         output_fn("Choose a pattern")
     output_fn(DIVIDER)
+    output_game_state(player_dolls, rooms, output_fn)
     output_fn(f"Kept dice        : [{format_dice(kept_dice)}]")
     output_fn(f"Reserved patterns: [{format_dice(used_faces)}]")
     output_fn(f"Kept total       : {kept_total}")
@@ -117,6 +155,8 @@ def choose_stop_interactively(
     remaining_dice,
     player_index=None,
     kept_dice=None,
+    player_dolls=None,
+    rooms=None,
     input_fn=input,
     output_fn=print,
 ):
@@ -132,6 +172,7 @@ def choose_stop_interactively(
     else:
         output_fn("Stop check")
     output_fn(DIVIDER)
+    output_game_state(player_dolls, rooms, output_fn)
     output_fn(f"Kept dice : [{format_dice(kept_dice)}]")
     output_fn(f"Kept total: {kept_total}")
     output_fn(
@@ -156,6 +197,8 @@ def roll_until_done(
     choose_face=choose_face_to_keep,
     should_stop=should_stop_automatically,
     player_index=None,
+    player_dolls=None,
+    rooms=None,
 ):
     validate_dice_settings(dice_count)
 
@@ -176,6 +219,8 @@ def roll_until_done(
             player_index=player_index,
             kept_dice=tuple(kept_dice),
             used_faces=used_faces,
+            player_dolls=player_dolls,
+            rooms=rooms,
         )
         if kept_face is None:
             ended_because_no_pattern = True
@@ -208,6 +253,8 @@ def roll_until_done(
                 remaining_dice,
                 player_index=player_index,
                 kept_dice=tuple(kept_dice),
+                player_dolls=player_dolls,
+                rooms=rooms,
             )
         )
         turns.append(
@@ -227,6 +274,7 @@ def roll_until_done(
         "turns": turns,
         "kept_dice": kept_dice,
         "kept_total": kept_total,
+        "dolls_rolled": count_dolls(kept_dice),
         "ignored_dice": remaining_dice if stopped and not ended_because_no_pattern else 0,
         "stopped": stopped,
         "ended_because_no_pattern": ended_because_no_pattern,
@@ -259,13 +307,14 @@ def roll_dice_for_players(
     return results
 
 
-def format_rolls(player_results):
+def format_rolls(player_results, labels=None):
     lines = []
-    for player_index, result in enumerate(player_results, start=1):
+    for result_index, result in enumerate(player_results, start=1):
         if lines:
             lines.append("")
         lines.append(HEADER_DIVIDER)
-        lines.append(f"Player {player_index} result")
+        label = labels[result_index - 1] if labels else f"Player {result_index}"
+        lines.append(f"{label} result")
         lines.append(DIVIDER)
         for turn_index, turn in enumerate(result["turns"], start=1):
             roll = format_dice(turn["roll"])
@@ -282,6 +331,7 @@ def format_rolls(player_results):
         lines.append(DIVIDER)
         lines.append(f"Final kept dice : [{final_result}]")
         lines.append(f"Final kept total: {result['kept_total']}")
+        lines.append(f"Final dolls     : {result.get('dolls_rolled', count_dolls(result['kept_dice']))}")
         if result["ignored_dice"]:
             ignored_label = "die" if result["ignored_dice"] == 1 else "dice"
             lines.append(

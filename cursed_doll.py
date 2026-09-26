@@ -1,12 +1,11 @@
 import argparse
 import random
 
+from game import format_game_result, play_game
 from player_turn import (
     choose_face_interactively,
     choose_face_to_keep,
     choose_stop_interactively,
-    format_rolls,
-    roll_dice_for_players,
     should_stop_automatically,
 )
 
@@ -40,7 +39,7 @@ def main():
     rng = random.Random(args.seed) if args.seed is not None else random
     choose_face = choose_face_interactively if args.interactive else choose_face_to_keep
     should_stop = choose_stop_interactively if args.interactive else should_stop_automatically
-    rolls = roll_dice_for_players(
+    game_result = play_game(
         args.players,
         rng=rng,
         choose_face=choose_face,
@@ -48,7 +47,7 @@ def main():
     )
     if args.interactive:
         print()
-    print(format_rolls(rolls))
+    print(format_game_result(game_result))
 
 
 if __name__ == "__main__":
