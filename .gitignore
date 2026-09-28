@@ -17,6 +17,8 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 dist/
+models/
+*.pt
 
 .DS_Store
 Thumbs.db

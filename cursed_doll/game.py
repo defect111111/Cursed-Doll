@@ -1,5 +1,5 @@
-from dice import count_dolls
-from player_turn import (
+from .dice import count_dolls
+from .player_turn import (
     DIVIDER,
     HEADER_DIVIDER,
     choose_face_to_keep,

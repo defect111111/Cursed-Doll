@@ -71,14 +71,14 @@ their next turn, in which case they continue playing.
 Run a full game with:
 
 ```bash
-python cursed_doll.py 2
+python -m cursed_doll.cli 2
 ```
 
 To choose the kept face yourself after each roll, decide whether to stop after
 reaching 7 or more, choose between tied fullest rooms, and choose optional gifts:
 
 ```bash
-python cursed_doll.py 2 --interactive
+python -m cursed_doll.cli 2 --interactive
 ```
 
 Interactive choices are labeled with letters like `a`, `b`, and `c` so they do not
@@ -92,7 +92,7 @@ a `Stop giving` option because giving dolls for kept `1` faces is optional.
 For repeatable rolls while testing:
 
 ```bash
-python cursed_doll.py 2 --seed 42
+python -m cursed_doll.cli 2 --seed 42
 ```
 
 ## Web Frontend
@@ -121,7 +121,7 @@ npm install
 Run the backend:
 
 ```bash
-conda run -n cursed-doll-web uvicorn web_backend:app --reload --host 127.0.0.1 --port 8000
+conda run -n cursed-doll-web uvicorn web.backend:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Run the frontend in another terminal:
@@ -137,7 +137,7 @@ server that changed. For example, to run the backend on `8001` and the frontend
 on `5174` in PowerShell:
 
 ```powershell
-conda run -n cursed-doll-web uvicorn web_backend:app --reload --host 127.0.0.1 --port 8001
+conda run -n cursed-doll-web uvicorn web.backend:app --reload --host 127.0.0.1 --port 8001
 $env:CURSED_DOLL_API_TARGET="http://127.0.0.1:8001"; npm run dev -- --port 5174
 ```
 
@@ -146,11 +146,52 @@ changing `vite.config.js` or `CURSED_DOLL_API_TARGET`. To check the backend
 directly, open `http://127.0.0.1:8000/api/health`. The backend root
 `http://127.0.0.1:8000/` only shows API information.
 
+## Turn AI Training
+
+The first AI framework trains a small CPU-only turn optimizer. It does not try to
+win the whole game. It only plays one player's turn and tries to maximize:
+
+```text
+reward = starting dolls - ending dolls
+```
+
+The AI environment randomizes the player's starting dolls and room dolls, then
+lets an agent choose dice patterns, stop or continue, choose tied rooms, and give
+optional dolls. Other players are intentionally ignored for this first model.
+
+Install the optional CPU PyTorch dependency:
+
+```bash
+pip install -r requirements-ai.txt
+```
+
+Train a small masked PPO actor-critic policy:
+
+```bash
+python -m ai.train --updates 40 --episodes-per-update 512
+```
+
+Evaluate a saved policy against random and heuristic baselines:
+
+```bash
+python -m ai.evaluate --model-path models/turn_policy.pt --episodes 2000
+```
+
+Training always uses CPU. No NVIDIA driver or CUDA installation is required.
+
 ## Code Structure
 
-- `dice.py`: die faces, die values, rolling helpers, and dice formatting.
-- `player_turn.py`: player choices, stop rules, turn progression, and result formatting.
-- `game.py`: player doll supply, doll rooms, and room placement rules.
-- `cursed_doll.py`: command-line entry point.
-- `web_backend.py`: FastAPI game state API for the web frontend.
+- `cursed_doll/`: core game package.
+- `cursed_doll/dice.py`: die faces, die values, rolling helpers, and dice formatting.
+- `cursed_doll/player_turn.py`: player choices, stop rules, turn progression, and result formatting.
+- `cursed_doll/game.py`: player doll supply, doll rooms, and room placement rules.
+- `cursed_doll/cli.py`: command-line entry point.
+- `web/backend.py`: FastAPI game state API for the web frontend.
 - `src/`: React frontend for the playable table UI.
+- `ai/`: single-turn reinforcement-learning package.
+- `ai/env.py`: turn environment with legal action masks.
+- `ai/agents.py`: random and heuristic turn baselines.
+- `ai/model.py`: small masked actor-critic network.
+- `ai/train.py`: CPU PPO trainer.
+- `ai/evaluate.py`: saved-policy evaluator.
+- `tests/`: Python regression tests.

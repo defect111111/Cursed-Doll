@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from collections import Counter
 import random
+from typing import Optional
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from dice import (
+from cursed_doll.dice import (
     DEFAULT_DICE_COUNT,
     FACE_VALUES,
     TARGET_KEPT_TOTAL,
@@ -14,7 +17,7 @@ from dice import (
     count_dolls,
     roll_dice,
 )
-from game import (
+from cursed_doll.game import (
     ADJUSTABLE_ROOMS,
     DOLL_ROOMS,
     create_doll_rooms,
@@ -41,15 +44,15 @@ GAMES = {}
 
 class NewGameRequest(BaseModel):
     player_count: int = 2
-    seed: int | None = None
+    seed: Optional[int] = None
 
 
 class ActionRequest(BaseModel):
     action: str
-    face: str | None = None
-    stop: bool | None = None
-    room: int | None = None
-    recipient: int | None = None
+    face: Optional[str] = None
+    stop: Optional[bool] = None
+    room: Optional[int] = None
+    recipient: Optional[int] = None
 
 
 def new_turn(game):

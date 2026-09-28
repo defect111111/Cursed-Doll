@@ -1,7 +1,15 @@
+import random
 import unittest
 
-from dice import FACE_VALUES, count_dolls
-from game import (
+from ai.agents import HeuristicTurnAgent, RandomTurnAgent, play_turn
+from ai.env import (
+    ACTION_COUNT,
+    ACTION_STOP,
+    FACE_TO_ACTION,
+    TurnEnv,
+)
+from cursed_doll.dice import FACE_VALUES, count_dolls
+from cursed_doll.game import (
     INITIAL_PLAYER_DOLLS,
     choose_gift_recipient_interactively,
     choose_room_interactively,
@@ -18,7 +26,7 @@ from game import (
     resolve_turn_effects,
     room_for_total,
 )
-from player_turn import (
+from cursed_doll.player_turn import (
     choose_face_interactively,
     choose_face_to_keep,
     choose_stop_interactively,
@@ -734,6 +742,59 @@ class RollDiceForPlayersTest(unittest.TestCase):
     def test_requires_at_least_one_player(self):
         with self.assertRaises(ValueError):
             roll_dice_for_players(0)
+
+
+class TurnEnvTest(unittest.TestCase):
+    def test_reset_returns_observation_and_legal_face_actions(self):
+        env = TurnEnv(
+            rng=FixedRng([1, 1, 2, 3, 4, 6]),
+            randomize_start=False,
+            allow_gifts=False,
+        )
+
+        self.assertEqual("choose_face", env.phase)
+        self.assertEqual(ACTION_COUNT, len(env.legal_action_mask()))
+        self.assertEqual(env.observation_size, len(env.observation()))
+        self.assertTrue(env.legal_action_mask()[FACE_TO_ACTION["1"]])
+        self.assertTrue(env.legal_action_mask()[FACE_TO_ACTION["two dolls"]])
+
+    def test_turn_reward_is_starting_dolls_minus_final_dolls(self):
+        env = TurnEnv(
+            rng=FixedRng([4, 4, 4, 1, 2, 3]),
+            randomize_start=False,
+            allow_gifts=False,
+        )
+
+        _observation, _reward, done, _info = env.step(FACE_TO_ACTION["4"])
+        self.assertFalse(done)
+        self.assertTrue(env.legal_action_mask()[ACTION_STOP])
+
+        _observation, reward, done, info = env.step(ACTION_STOP)
+
+        self.assertTrue(done)
+        self.assertEqual(env.starting_dolls - info["player_dolls"], reward)
+
+    def test_heuristic_agent_finishes_a_turn(self):
+        env = TurnEnv(rng=FixedRng([4, 4, 4, 1, 2, 3]), randomize_start=False)
+
+        reward, info, observation = play_turn(HeuristicTurnAgent(), env)
+
+        self.assertTrue(env.done)
+        self.assertEqual(env.observation_size, len(observation))
+        self.assertEqual(env.starting_dolls - info["player_dolls"], reward)
+
+    def test_random_agent_finishes_a_turn(self):
+        env = TurnEnv(
+            rng=FixedRng([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 1, 2, 3, 4, 1, 2, 3, 1, 2, 1]),
+            randomize_start=False,
+            allow_gifts=False,
+        )
+        agent = RandomTurnAgent(rng=random.Random(3))
+
+        reward, info, _observation = play_turn(agent, env)
+
+        self.assertTrue(env.done)
+        self.assertEqual(env.starting_dolls - info["player_dolls"], reward)
 
 
 if __name__ == "__main__":

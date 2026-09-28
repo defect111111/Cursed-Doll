@@ -1,7 +1,7 @@
 from collections import Counter
 import random
 
-from dice import (
+from .dice import (
     DEFAULT_DICE_COUNT,
     FACE_VALUES,
     TARGET_KEPT_TOTAL,

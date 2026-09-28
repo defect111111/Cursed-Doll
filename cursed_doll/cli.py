@@ -1,13 +1,13 @@
 import argparse
 import random
 
-from game import (
+from .game import (
     choose_gift_recipient_interactively,
     choose_room_interactively,
     format_game_result,
     play_game,
 )
-from player_turn import (
+from .player_turn import (
     choose_face_interactively,
     choose_face_to_keep,
     choose_stop_interactively,
