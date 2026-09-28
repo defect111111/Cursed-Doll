@@ -157,7 +157,11 @@ reward = starting dolls - ending dolls
 
 The AI environment randomizes the player's starting dolls and room dolls, then
 lets an agent choose dice patterns, stop or continue, choose tied rooms, and give
-optional dolls. Other players are intentionally ignored for this first model.
+optional dolls. Rooms `7` through `10` are sampled from a Gaussian distribution
+with mean `1` and variance `1`, rounded to whole dolls and clipped at zero. Room
+`11` starts at `0` and is not included in the model observation because its
+existing doll count does not influence single-turn decisions. Other players are
+intentionally ignored for this first model.
 
 Install the optional CPU PyTorch dependency:
 
@@ -181,6 +185,12 @@ Evaluate a saved policy against random and heuristic baselines:
 python -m ai.evaluate --model-path models/turn_policy.pt --episodes 2000
 ```
 
+Show a single model-controlled turn with each decision printed:
+
+```bash
+python -m ai.demo --model-path models/turn_policy.pt
+```
+
 Training always uses CPU. No NVIDIA driver or CUDA installation is required.
 
 ## Code Structure
@@ -198,4 +208,5 @@ Training always uses CPU. No NVIDIA driver or CUDA installation is required.
 - `ai/model.py`: small masked actor-critic network.
 - `ai/train.py`: CPU PPO trainer.
 - `ai/evaluate.py`: saved-policy evaluator.
+- `ai/demo.py`: single-turn policy rollout demo.
 - `tests/`: Python regression tests.

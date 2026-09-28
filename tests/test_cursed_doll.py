@@ -46,6 +46,27 @@ class FixedRng:
         return value
 
 
+class FixedGaussianRng:
+    def __init__(self, gaussian_values, randint_values=None):
+        self.gaussian_values = list(gaussian_values)
+        self.randint_values = list(randint_values or [10, 0])
+
+    def gauss(self, mean, standard_deviation):
+        self.assert_gaussian_settings(mean, standard_deviation)
+        return self.gaussian_values.pop(0)
+
+    def randint(self, minimum, maximum):
+        value = self.randint_values.pop(0)
+        if not minimum <= value <= maximum:
+            raise AssertionError(f"{value} is outside {minimum}-{maximum}")
+        return value
+
+    @staticmethod
+    def assert_gaussian_settings(mean, standard_deviation):
+        if mean != 1 or standard_deviation != 1:
+            raise AssertionError("Adjustable rooms should use N(1, 1).")
+
+
 class RollDiceForPlayersTest(unittest.TestCase):
     def test_keeps_matching_faces_until_total_reaches_at_least_seven(self):
         rng = FixedRng([1, 1, 2, 3, 4, 6, 3, 3, 5, 6])
@@ -795,6 +816,36 @@ class TurnEnvTest(unittest.TestCase):
 
         self.assertTrue(env.done)
         self.assertEqual(env.starting_dolls - info["player_dolls"], reward)
+
+    def test_randomized_adjustable_rooms_use_clipped_gaussian(self):
+        env = TurnEnv(
+            rng=FixedGaussianRng(
+                [-1.2, 0.4, 1.6, 3.7],
+                randint_values=[5, 4, 4, 4, 4, 4, 4],
+            )
+        )
+
+        self.assertEqual(0, env.rooms[7])
+        self.assertEqual(0, env.rooms[8])
+        self.assertEqual(2, env.rooms[9])
+        self.assertEqual(4, env.rooms[10])
+        self.assertEqual(0, env.rooms[11])
+
+    def test_room_eleven_is_not_observed_by_turn_model(self):
+        rooms_without_eleven = {7: 1, 8: 2, 9: 3, 10: 4, 11: 0}
+        rooms_with_eleven = {7: 1, 8: 2, 9: 3, 10: 4, 11: 99}
+        first_env = TurnEnv(
+            rng=FixedRng([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6]),
+            randomize_start=False,
+        )
+        first_env.reset(rooms=rooms_without_eleven, player_dolls=6)
+        second_env = TurnEnv(
+            rng=FixedRng([1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6]),
+            randomize_start=False,
+        )
+        second_env.reset(rooms=rooms_with_eleven, player_dolls=6)
+
+        self.assertEqual(first_env.observation(), second_env.observation())
 
 
 if __name__ == "__main__":

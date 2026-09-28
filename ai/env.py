@@ -36,6 +36,7 @@ ROOM_TO_ACTION = {
 ACTION_TO_ROOM = {action: room for room, action in ROOM_TO_ACTION.items()}
 
 PHASES = ("choose_face", "stop_check", "choose_room", "gift", "done")
+OBSERVED_ROOMS = ADJUSTABLE_ROOMS
 
 
 class TurnEnv:
@@ -89,7 +90,7 @@ class TurnEnv:
         phase_mask = [1.0 if self.phase == phase else 0.0 for phase in PHASES]
         return [
             self.player_dolls / 10.0,
-            *[self.rooms[room] / 10.0 for room in DOLL_ROOMS],
+            *[self.rooms[room] / 10.0 for room in OBSERVED_ROOMS],
             *[count / DEFAULT_DICE_COUNT for count in roll_counts],
             *[count / DEFAULT_DICE_COUNT for count in kept_counts],
             *used_mask,
@@ -151,9 +152,12 @@ class TurnEnv:
     def _random_rooms(self):
         rooms = create_doll_rooms()
         for room in ADJUSTABLE_ROOMS:
-            rooms[room] = self.rng.randint(0, 8)
-        rooms[11] = self.rng.randint(0, 16)
+            rooms[room] = self._sample_adjustable_room_dolls()
+        rooms[11] = 0
         return rooms
+
+    def _sample_adjustable_room_dolls(self):
+        return max(0, round(self.rng.gauss(1, 1)))
 
     def _face_counts(self, dice):
         counts = Counter(dice)
