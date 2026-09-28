@@ -171,6 +171,10 @@ Train a small masked PPO actor-critic policy:
 python -m ai.train --updates 40 --episodes-per-update 512
 ```
 
+Each run writes organized local logs under `training_runs/`, including
+`config.json`, `metrics.csv`, and `summary.json`. The best model is saved to
+`models/turn_policy.pt` by default.
+
 Evaluate a saved policy against random and heuristic baselines:
 
 ```bash

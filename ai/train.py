@@ -1,5 +1,9 @@
 import argparse
+import csv
+from datetime import datetime
+import json
 import os
+from pathlib import Path
 import random
 
 try:
@@ -30,6 +34,8 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--save-path", default="models/turn_policy.pt")
     parser.add_argument("--eval-episodes", type=int, default=500)
+    parser.add_argument("--log-dir", default="training_runs")
+    parser.add_argument("--run-name", default=None)
     return parser.parse_args()
 
 
@@ -133,6 +139,52 @@ def ppo_update(model, optimizer, rollout, args):
             optimizer.step()
 
 
+def create_run_log(args):
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = args.run_name or f"turn_ppo_{timestamp}"
+    run_dir = Path(args.log_dir) / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    config_path = run_dir / "config.json"
+    with config_path.open("w", encoding="utf-8") as config_file:
+        json.dump(vars(args), config_file, indent=2, sort_keys=True)
+
+    metrics_path = run_dir / "metrics.csv"
+    fieldnames = [
+        "update",
+        "rollout_average_reward",
+        "policy_average_reward",
+        "policy_average_terminal_dolls",
+        "random_average_reward",
+        "random_average_terminal_dolls",
+        "heuristic_average_reward",
+        "heuristic_average_terminal_dolls",
+        "best_average_reward",
+        "saved_best",
+    ]
+    with metrics_path.open("w", newline="", encoding="utf-8") as metrics_file:
+        writer = csv.DictWriter(metrics_file, fieldnames=fieldnames)
+        writer.writeheader()
+
+    return {
+        "run_dir": run_dir,
+        "metrics_path": metrics_path,
+        "summary_path": run_dir / "summary.json",
+        "fieldnames": fieldnames,
+    }
+
+
+def append_metrics(log, row):
+    with log["metrics_path"].open("a", newline="", encoding="utf-8") as metrics_file:
+        writer = csv.DictWriter(metrics_file, fieldnames=log["fieldnames"])
+        writer.writerow(row)
+
+
+def write_summary(log, summary):
+    with log["summary_path"].open("w", encoding="utf-8") as summary_file:
+        json.dump(summary, summary_file, indent=2, sort_keys=True)
+
+
 def main():
     args = parse_args()
     random.seed(args.seed)
@@ -147,8 +199,11 @@ def main():
     save_dir = os.path.dirname(args.save_path)
     if save_dir:
         os.makedirs(save_dir, exist_ok=True)
+    log = create_run_log(args)
     best_reward = None
+    best_update = None
     print("Training on CPU")
+    print(f"Logging run to {log['run_dir']}")
     for update in range(1, args.updates + 1):
         model.train()
         rollout = collect_rollouts(model, args.episodes_per_update, rng, device)
@@ -175,8 +230,11 @@ def main():
             episodes=args.eval_episodes,
         )
         average_reward = metrics["average_reward"]
+        saved_best = False
         if best_reward is None or average_reward > best_reward:
             best_reward = average_reward
+            best_update = update
+            saved_best = True
             torch.save(
                 {
                     "model_state": model.state_dict(),
@@ -188,6 +246,22 @@ def main():
                 args.save_path,
             )
 
+        append_metrics(
+            log,
+            {
+                "update": update,
+                "rollout_average_reward": rollout["average_reward"],
+                "policy_average_reward": metrics["average_reward"],
+                "policy_average_terminal_dolls": metrics["average_terminal_dolls"],
+                "random_average_reward": random_metrics["average_reward"],
+                "random_average_terminal_dolls": random_metrics["average_terminal_dolls"],
+                "heuristic_average_reward": heuristic_metrics["average_reward"],
+                "heuristic_average_terminal_dolls": heuristic_metrics["average_terminal_dolls"],
+                "best_average_reward": best_reward,
+                "saved_best": int(saved_best),
+            },
+        )
+
         print(
             f"update {update:03d} "
             f"rollout={rollout['average_reward']:.3f} "
@@ -197,7 +271,18 @@ def main():
             f"best={best_reward:.3f}"
         )
 
+    write_summary(
+        log,
+        {
+            "best_average_reward": best_reward,
+            "best_update": best_update,
+            "metrics_path": str(log["metrics_path"]),
+            "model_path": args.save_path,
+            "run_dir": str(log["run_dir"]),
+        },
+    )
     print(f"Saved best model to {args.save_path}")
+    print(f"Saved training log to {log['metrics_path']}")
 
 
 if __name__ == "__main__":

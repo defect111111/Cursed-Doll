@@ -19,6 +19,7 @@ frontend/dist/
 dist/
 models/
 *.pt
+training_runs/
 
 .DS_Store
 Thumbs.db
