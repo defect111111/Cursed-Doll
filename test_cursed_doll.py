@@ -508,7 +508,7 @@ class RollDiceForPlayersTest(unittest.TestCase):
         self.assertEqual(10, second_player_context["player_dolls"][2])
         self.assertEqual(3, second_player_context["rooms"][7])
 
-    def test_game_ends_when_a_player_has_no_dolls(self):
+    def test_game_ends_when_a_player_starts_a_turn_with_no_dolls(self):
         rng = FixedRng([
             6, 6, 6, 5, 4, 3,
             4, 4, 5,
@@ -516,8 +516,9 @@ class RollDiceForPlayersTest(unittest.TestCase):
             4, 4, 4, 1, 1, 1,
             6, 6, 4, 4, 4, 1,
             4, 4, 4, 1,
+            1, 1, 1, 1, 1, 1,
         ])
-        choices = iter(["two dolls", "one doll", "4", "4", "two dolls", "4"])
+        choices = iter(["two dolls", "one doll", "4", "4", "two dolls", "4", "1"])
 
         def choose_face(roll, **_context):
             choice = next(choices)
@@ -528,20 +529,28 @@ class RollDiceForPlayersTest(unittest.TestCase):
         game_result = play_game(2, rng=rng, choose_face=choose_face)
 
         self.assertEqual(1, game_result["winner"])
-        self.assertEqual(3, len(game_result["turns"]))
+        self.assertEqual(4, len(game_result["turns"]))
         self.assertEqual(4, game_result["turns"][0]["dolls_remaining"])
         self.assertEqual(10, game_result["turns"][1]["starting_dolls"])
         self.assertEqual(10, game_result["turns"][1]["dolls_remaining"])
         self.assertEqual(0, game_result["turns"][2]["dolls_remaining"])
+        self.assertEqual(2, game_result["turns"][3]["player_index"])
+        self.assertEqual(10, game_result["turns"][3]["starting_dolls"])
+        self.assertEqual(10, game_result["turns"][3]["dolls_remaining"])
         self.assertEqual(1, game_result["rooms"][7])
-        self.assertEqual(7, game_result["rooms"][8])
-        self.assertEqual(4, game_result["rooms"][11])
+        self.assertEqual(0, game_result["rooms"][8])
+        self.assertEqual(11, game_result["rooms"][11])
         self.assertEqual(0, game_result["player_dolls"][1])
         self.assertEqual(10, game_result["player_dolls"][2])
 
         output = format_game_result(game_result)
         self.assertIn("Turn 1 - Player 1 result", output)
         self.assertIn("Turn 3 - Player 1 result", output)
+        self.assertIn("Turn 4 - Player 2 result", output)
+        self.assertIn(
+            "The game ended because that player started a turn with no dolls.",
+            output,
+        )
         self.assertIn("Winner: Player 1", output)
 
     def test_choose_face_interactively_accepts_lettered_choice(self):

@@ -276,11 +276,6 @@ def complete_turn(game):
     game["last_turn"] = turn_record
     game["turn_history"].append(turn_record)
 
-    if game["player_dolls"][game["current_player"]] == 0:
-        game["winner"] = game["current_player"]
-        game["phase"] = "game_over"
-        return
-
     game["phase"] = "turn_summary"
 
 
@@ -295,6 +290,10 @@ def next_turn(game):
     if game["current_player"] > game["player_count"]:
         game["current_player"] = 1
     game["starting_dolls"] = game["player_dolls"][game["current_player"]]
+    if game["starting_dolls"] == 0:
+        game["winner"] = game["current_player"]
+        game["phase"] = "game_over"
+        return
     new_turn(game)
 
 

@@ -423,6 +423,10 @@ def play_game(
 
     while winner is None:
         for player_index in range(1, player_count + 1):
+            if player_dolls[player_index] == 0:
+                winner = player_index
+                break
+
             turn_number += 1
             turn_result = roll_until_done(
                 rng=rng,
@@ -450,10 +454,6 @@ def play_game(
             }
             turns.append(turn_record)
 
-            if player_dolls[player_index] == 0:
-                winner = player_index
-                break
-
     return {
         "rooms": rooms,
         "player_dolls": player_dolls,
@@ -474,7 +474,7 @@ def format_game_result(game_result):
         lines.append("=" * 56)
         lines.append(f"Winner: Player {game_result['winner']}")
         lines.append("-" * 56)
-        lines.append("The game ended because that player has no dolls left.")
+        lines.append("The game ended because that player started a turn with no dolls.")
         lines.append("")
 
     lines.append("=" * 56)

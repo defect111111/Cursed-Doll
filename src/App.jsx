@@ -262,7 +262,7 @@ function phasePrompt(game) {
     },
     game_over: {
       title: `Player ${game.winner} wins`,
-      copy: "That player has no dolls remaining.",
+      copy: "That player started a turn with no dolls.",
     },
   };
   return prompts[game.phase] || { title: "Continue", copy: "" };
@@ -364,7 +364,11 @@ function ActionPanel({ game, action, loading }) {
   }
 
   if (game.phase === "game_over") {
-    return <p className="end-message">Player {game.winner} has escaped the dolls.</p>;
+    return (
+      <p className="end-message">
+        Player {game.winner} started a turn with no dolls and wins.
+      </p>
+    );
   }
 
   return null;

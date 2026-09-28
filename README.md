@@ -62,8 +62,11 @@ player in turn order. A one-player game has no valid recipient.
 After every turn, any player with more than 10 dolls returns the extra dolls to
 room `11`.
 
-Doll placement is resolved immediately after each player's turn. The game ends as
-soon as a player has no dolls remaining, and that player wins.
+Doll placement is resolved immediately after each player's turn. Reaching zero
+dolls does not immediately end the game. The game ends only when a player's turn
+is about to start and that player has zero dolls. That player wins. A player who
+reaches zero may still receive dolls from another player's optional gift before
+their next turn, in which case they continue playing.
 
 Run a full game with:
 
