@@ -9,9 +9,8 @@ import {
   Users,
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
+import { applyGameAction, createGame } from "./gameLogic";
 import "./styles.css";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 function diceLabel(face) {
   if (face === "one doll") return "Doll";
@@ -29,53 +28,31 @@ function App() {
   const [playerCount, setPlayerCount] = useState(2);
   const [seed, setSeed] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function request(path, options = {}) {
+  function startGame() {
     setError("");
-    setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}${path}`, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-      });
-      const contentType = response.headers.get("content-type") || "";
-      const isJson = contentType.includes("application/json");
-      const body = isJson ? await response.json() : await response.text();
-      if (!response.ok) {
-        const detail = typeof body === "object" ? body.detail : body;
-        throw new Error(detail || `Request failed with ${response.status}`);
-      }
-      if (!isJson) {
-        throw new Error("The backend response was not JSON.");
-      }
-      setGame(body);
-      return body;
-    } catch (requestError) {
-      setError(
-        `Cannot reach the game backend. Make sure FastAPI is running and restart Vite if you changed vite.config.js. ${requestError.message}`,
+      setGame(
+        createGame({
+          playerCount: Number(playerCount),
+          seed: seed === "" ? null : Number(seed),
+        }),
       );
-      return null;
-    } finally {
-      setLoading(false);
+    } catch (gameError) {
+      setError(gameError.message);
     }
   }
 
-  async function startGame() {
-    await request("/games", {
-      method: "POST",
-      body: JSON.stringify({
-        player_count: Number(playerCount),
-        seed: seed === "" ? null : Number(seed),
-      }),
-    });
-  }
-
-  async function action(payload) {
-    if (!game) return;
-    await request(`/games/${game.id}/actions`, {
-      method: "POST",
-      body: JSON.stringify(payload),
+  function action(payload) {
+    setError("");
+    setGame((currentGame) => {
+      if (!currentGame) return currentGame;
+      try {
+        return applyGameAction(currentGame, payload);
+      } catch (gameError) {
+        setError(gameError.message);
+        return currentGame;
+      }
     });
   }
 
@@ -112,7 +89,7 @@ function App() {
               onChange={(event) => setSeed(event.target.value)}
             />
           </label>
-          <button className="primary" onClick={startGame} disabled={loading}>
+          <button className="primary" onClick={startGame}>
             <RotateCcw size={18} />
             New Game
           </button>
@@ -123,7 +100,7 @@ function App() {
 
       {!game && !error && (
         <section className="empty-state">
-          <strong>{loading ? "Starting game..." : "No game loaded"}</strong>
+          <strong>No game loaded</strong>
         </section>
       )}
 
@@ -183,7 +160,6 @@ function App() {
                 <button
                   className="primary"
                   onClick={() => action({ action: "next_turn" })}
-                  disabled={loading}
                 >
                   <ArrowRight size={18} />
                   Next Turn
@@ -205,7 +181,7 @@ function App() {
               </Panel>
             </div>
 
-            <ActionPanel game={game} action={action} loading={loading} />
+            <ActionPanel game={game} action={action} />
           </section>
 
           <aside className="log-panel">
@@ -290,7 +266,7 @@ function DiceRow({ dice, empty = "No dice" }) {
   );
 }
 
-function ActionPanel({ game, action, loading }) {
+function ActionPanel({ game, action }) {
   if (game.phase === "choose_face") {
     return (
       <div className="actions">
@@ -300,7 +276,6 @@ function ActionPanel({ game, action, loading }) {
             onClick={() =>
               action({ action: "choose_face", face: choice.face })
             }
-            disabled={loading}
           >
             <Play size={18} />
             <span>{diceLabel(choice.face)} x{choice.count}</span>

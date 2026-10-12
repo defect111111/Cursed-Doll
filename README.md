@@ -95,22 +95,11 @@ For repeatable rolls while testing:
 python -m cursed_doll.cli 2 --seed 42
 ```
 
-## Web Frontend
+## GitHub Pages Web App
 
-Version `v2.0` includes the first web version. It uses a FastAPI backend with the
-existing Python game rules, plus a Vite React frontend.
-
-Create or update the backend environment:
-
-```bash
-conda env create -f environment.yml
-```
-
-If the environment already exists:
-
-```bash
-conda env update -f environment.yml --prune
-```
+This branch is organized as a static GitHub Pages web app. The playable table
+runs entirely in the browser with a small JavaScript game engine, so the public
+site does not need FastAPI, Python, or a database server.
 
 Install frontend packages:
 
@@ -118,13 +107,7 @@ Install frontend packages:
 npm install
 ```
 
-Run the backend:
-
-```bash
-conda run -n cursed-doll-web uvicorn web.backend:app --reload --host 127.0.0.1 --port 8000
-```
-
-Run the frontend in another terminal:
+Run the local web app:
 
 ```bash
 npm run dev
@@ -132,19 +115,31 @@ npm run dev
 
 Then open `http://127.0.0.1:5173`.
 
-If port `8000` or `5173` is already in use, choose another port and restart the
-server that changed. For example, to run the backend on `8001` and the frontend
-on `5174` in PowerShell:
+Build the static site:
 
-```powershell
-conda run -n cursed-doll-web uvicorn web.backend:app --reload --host 127.0.0.1 --port 8001
-$env:CURSED_DOLL_API_TARGET="http://127.0.0.1:8001"; npm run dev -- --port 5174
+```bash
+npm run build
 ```
 
-The frontend calls the backend through `/api`, so Vite must be restarted after
-changing `vite.config.js` or `CURSED_DOLL_API_TARGET`. To check the backend
-directly, open `http://127.0.0.1:8000/api/health`. The backend root
-`http://127.0.0.1:8000/` only shows API information.
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+The Vite base path is set to `/Cursed-Doll/`, matching the expected GitHub Pages
+URL:
+
+```text
+https://defect111111.github.io/Cursed-Doll/
+```
+
+GitHub Pages deployment is handled by `.github/workflows/deploy-pages.yml`.
+In the GitHub repository settings, set Pages to use GitHub Actions as the source,
+then push this branch or run the workflow manually.
+
+The FastAPI backend in `web/backend.py` is still available for local experiments,
+but the GitHub Pages web app does not call it.
 
 ## Turn AI Training
 
@@ -218,8 +213,9 @@ Training always uses CPU. No NVIDIA driver or CUDA installation is required.
 - `cursed_doll/player_turn.py`: player choices, stop rules, turn progression, and result formatting.
 - `cursed_doll/game.py`: player doll supply, doll rooms, and room placement rules.
 - `cursed_doll/cli.py`: command-line entry point.
-- `web/backend.py`: FastAPI game state API for the web frontend.
+- `web/backend.py`: optional FastAPI game state API for local experiments.
 - `src/`: React frontend for the playable table UI.
+- `src/gameLogic.js`: browser-side game engine used by the GitHub Pages app.
 - `ai/`: single-turn reinforcement-learning package.
 - `ai/env.py`: turn environment with legal action masks.
 - `ai/agents.py`: random and heuristic turn baselines.
