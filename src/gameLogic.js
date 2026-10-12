@@ -214,6 +214,9 @@ function publicState(game) {
 }
 
 function rollForChoice(game) {
+  if (game.phase !== "ready_to_roll") {
+    throw new Error("It is not time to roll.");
+  }
   game.current_roll = rollDice(game.remaining_dice, game);
   const choices = availableFacesForRoll(game.current_roll, game.used_faces);
   if (choices.length === 0) {
@@ -248,7 +251,7 @@ function newTurn(game) {
   game.gift_limit = 0;
   game.gift_recipients = {};
   game.tied_rooms = [];
-  rollForChoice(game);
+  game.phase = "ready_to_roll";
 }
 
 function chooseFace(game, face) {
@@ -283,7 +286,8 @@ function chooseFace(game, face) {
   } else if (canStop) {
     game.phase = "stop_check";
   } else {
-    rollForChoice(game);
+    game.current_roll = [];
+    game.phase = "ready_to_roll";
   }
 }
 
@@ -295,7 +299,8 @@ function chooseStop(game, stop) {
     game.turn_rolls[game.turn_rolls.length - 1].stopped = true;
     finishTurn(game, true, false);
   } else {
-    rollForChoice(game);
+    game.current_roll = [];
+    game.phase = "ready_to_roll";
   }
 }
 
@@ -477,7 +482,9 @@ export function createGame({ playerCount = 2, seed = null } = {}) {
 
 export function applyGameAction(game, request) {
   const nextGame = cloneGame(game);
-  if (request.action === "choose_face") {
+  if (request.action === "roll") {
+    rollForChoice(nextGame);
+  } else if (request.action === "choose_face") {
     chooseFace(nextGame, request.face);
   } else if (request.action === "stop") {
     chooseStop(nextGame, Boolean(request.stop));

@@ -28,7 +28,6 @@ function App() {
   const [screen, setScreen] = useState("start");
   const [game, setGame] = useState(null);
   const [playerCount, setPlayerCount] = useState(2);
-  const [seed, setSeed] = useState("");
   const [error, setError] = useState("");
 
   function startGame() {
@@ -37,7 +36,6 @@ function App() {
       setGame(
         createGame({
           playerCount: Number(playerCount),
-          seed: seed === "" ? null : Number(seed),
         }),
       );
       setScreen("game");
@@ -91,15 +89,6 @@ function App() {
                 onChange={(event) => setPlayerCount(event.target.value)}
               />
             </label>
-            <label>
-              Seed
-              <input
-                type="number"
-                placeholder="optional"
-                value={seed}
-                onChange={(event) => setSeed(event.target.value)}
-              />
-            </label>
           </div>
 
           {error && <div className="error">{error}</div>}
@@ -135,15 +124,6 @@ function App() {
               type="number"
               value={playerCount}
               onChange={(event) => setPlayerCount(event.target.value)}
-            />
-          </label>
-          <label>
-            Seed
-            <input
-              type="number"
-              placeholder="optional"
-              value={seed}
-              onChange={(event) => setSeed(event.target.value)}
             />
           </label>
           <button className="primary" onClick={startGame}>
@@ -277,6 +257,10 @@ function App() {
 function phasePrompt(game) {
   if (!game) return { title: "Loading", copy: "" };
   const prompts = {
+    ready_to_roll: {
+      title: "Roll the dice",
+      copy: "Roll the remaining dice, then reserve one available pattern.",
+    },
     choose_face: {
       title: "Choose a pattern to keep",
       copy: "All dice with that face will be reserved, then the rest continue.",
@@ -328,6 +312,18 @@ function DiceRow({ dice, empty = "No dice" }) {
 }
 
 function ActionPanel({ game, action }) {
+  if (game.phase === "ready_to_roll") {
+    return (
+      <div className="actions two">
+        <button className="primary" onClick={() => action({ action: "roll" })}>
+          <RotateCcw size={18} />
+          Roll
+          <small>{game.remaining_dice} dice</small>
+        </button>
+      </div>
+    );
+  }
+
   if (game.phase === "choose_face") {
     return (
       <div className="actions">
