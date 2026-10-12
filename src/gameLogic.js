@@ -202,6 +202,7 @@ function publicState(game) {
 
   return {
     ...game,
+    roll: [...game.current_roll],
     choices: game.phase === "choose_face" ? patternChoices(game) : [],
     can_stop: game.phase === "stop_check",
     dolls_rolled: countDolls(game.kept_dice),
