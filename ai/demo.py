@@ -123,6 +123,12 @@ def main():
     model, device = load_policy(args.model_path)
     rng = random.Random(args.seed)
     env = TurnEnv(rng=rng)
+    if model.backbone[0].in_features != env.observation_size:
+        raise SystemExit(
+            "This checkpoint does not match the single-turn demo observation size. "
+            "Use `python -m ai.self_play_demo --model-path models/self_play_policy.pt` "
+            "for self-play checkpoints."
+        )
 
     rooms = parse_rooms(args.rooms)
     if args.player_dolls is not None or rooms is not None:

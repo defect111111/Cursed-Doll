@@ -191,6 +191,24 @@ Show a single model-controlled turn with each decision printed:
 python -m ai.demo --model-path models/turn_policy.pt
 ```
 
+Show a full model-controlled self-play game:
+
+```bash
+python -m ai.self_play_demo --model-path models/self_play_policy.pt
+```
+
+Evaluate a full-game self-play policy:
+
+```bash
+python -m ai.self_play_evaluate --model-path models/self_play_policy.pt --games 500
+```
+
+Train a first two-player self-play policy:
+
+```bash
+python -m ai.self_play --updates 40 --games-per-update 64 --eval-games 100 --run-name self_play_first
+```
+
 Training always uses CPU. No NVIDIA driver or CUDA installation is required.
 
 ## Code Structure
@@ -209,4 +227,7 @@ Training always uses CPU. No NVIDIA driver or CUDA installation is required.
 - `ai/train.py`: CPU PPO trainer.
 - `ai/evaluate.py`: saved-policy evaluator.
 - `ai/demo.py`: single-turn policy rollout demo.
+- `ai/self_play.py`: two-player self-play trainer.
+- `ai/self_play_evaluate.py`: full-game self-play evaluator.
+- `ai/self_play_demo.py`: full-game self-play rollout demo.
 - `tests/`: Python regression tests.

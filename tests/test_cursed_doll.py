@@ -8,6 +8,7 @@ from ai.env import (
     FACE_TO_ACTION,
     TurnEnv,
 )
+from ai.self_play import SelfPlayGameEnv
 from cursed_doll.dice import FACE_VALUES, count_dolls
 from cursed_doll.game import (
     INITIAL_PLAYER_DOLLS,
@@ -846,6 +847,25 @@ class TurnEnvTest(unittest.TestCase):
         second_env.reset(rooms=rooms_with_eleven, player_dolls=6)
 
         self.assertEqual(first_env.observation(), second_env.observation())
+
+
+class SelfPlayGameEnvTest(unittest.TestCase):
+    def test_self_play_starts_with_legal_face_actions(self):
+        env = SelfPlayGameEnv(rng=random.Random(5))
+
+        self.assertEqual(1, env.current_player)
+        self.assertEqual("choose_face", env.phase)
+        self.assertEqual(ACTION_COUNT, len(env.legal_action_mask()))
+        self.assertTrue(any(env.legal_action_mask()))
+        self.assertEqual(env.observation_size, len(env.observation()))
+
+    def test_room_eleven_is_not_observed_by_self_play_model(self):
+        env = SelfPlayGameEnv(rng=random.Random(9))
+        observation = env.observation()
+
+        env.rooms[11] = 99
+
+        self.assertEqual(observation, env.observation())
 
 
 if __name__ == "__main__":
