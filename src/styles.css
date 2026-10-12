@@ -371,13 +371,21 @@ input {
   color: #665b51;
 }
 
-.rules-button {
+.floating-controls {
   bottom: 24px;
-  box-shadow: 0 10px 24px rgba(37, 31, 29, 0.18);
-  font-weight: 800;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  max-width: calc(100vw - 48px);
   position: fixed;
   right: 24px;
   z-index: 20;
+}
+
+.floating-controls button {
+  box-shadow: 0 10px 24px rgba(37, 31, 29, 0.18);
+  font-weight: 800;
 }
 
 .rules-overlay {
@@ -453,8 +461,9 @@ input {
     width: 100%;
   }
 
-  .rules-button {
+  .floating-controls {
     bottom: 16px;
+    max-width: calc(100vw - 32px);
     right: 16px;
   }
 
