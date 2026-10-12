@@ -54,7 +54,8 @@ button:disabled {
 h1,
 h2,
 h3,
-p {
+p,
+ul {
   margin: 0;
 }
 
@@ -427,7 +428,27 @@ input {
 .rules-content {
   color: #5c5146;
   display: grid;
-  gap: 0.85rem;
+  gap: 1rem;
+}
+
+.rules-section {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.rules-section h3 {
+  color: #3d332d;
+  font-size: 0.95rem;
+}
+
+.rules-section ul {
+  display: grid;
+  gap: 0.4rem;
+  padding-left: 1.1rem;
+}
+
+.rules-section li {
+  line-height: 1.45;
 }
 
 @media (max-width: 1060px) {

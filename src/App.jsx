@@ -102,12 +102,53 @@ const TEXT = {
         copy: "The winner started a turn with no dolls.",
       },
     },
-    rulesText: [
-      "Each turn begins by rolling the remaining dice. Choose one face to reserve; all dice showing that face are kept, and that face cannot be chosen again this turn.",
-      "Numeric faces add to the kept total. Doll faces add dolls but no number. If the kept total reaches 7 or more, the player may stop; otherwise the turn continues until no dice remain or no new face can be reserved.",
-      "Totals 7, 8, 9, and 10 adjust the matching room to the rolled doll count. Totals 11 or more add rolled dolls to room 11. Totals 6 or less take all dolls from one fullest room among 7 through 10.",
-      "If a player placed at least one doll and kept any 1s, that player may give one doll per kept 1 to another player. Any player above 10 dolls moves the extra dolls into room 11.",
-      "A player wins only when their turn is about to start and they have zero dolls.",
+    rulesSections: [
+      {
+        title: "Goal",
+        items: [
+          "Each player starts the game with 10 dolls in hand. Rooms 7, 8, 9, and 10 each start with 1 doll; room 11 starts empty.",
+          "Your aim is to get rid of your dolls. A player wins only if they start their own turn with 0 dolls.",
+        ],
+      },
+      {
+        title: "Dice and reserving",
+        items: [
+          "The six die faces are 1, 2, 3, 4, one doll, and two dolls.",
+          "At the start of a turn you roll 6 dice. Later in the same turn, you roll only the dice that were not kept.",
+          "After each roll, choose one face to reserve. All dice showing that face are kept together.",
+          "Each face can be reserved only once per turn. If no rolled face is available, the turn ends immediately.",
+        ],
+      },
+      {
+        title: "Total, dolls, and stopping",
+        items: [
+          "Number faces add to the kept total. Doll faces do not add to the total; they only count how many dolls were rolled this turn.",
+          "If the kept total is below 7, you must continue whenever there are dice left and an available face to reserve.",
+          "If the kept total is 7 or higher, you may stop and ignore all unkept dice. If you continue, you roll the remaining dice.",
+        ],
+      },
+      {
+        title: "Room effects",
+        items: [
+          "Final totals 7, 8, 9, and 10 adjust the matching room to exactly the number of dolls you rolled this turn. If the room has fewer dolls, you add dolls from your hand. If it has more, you take the difference back.",
+          "A final total of 11 or higher adds the dolls you rolled this turn into room 11. Room 11 is never adjusted downward.",
+          "A final total of 6 or lower means you take all dolls from one fullest room among rooms 7 through 10. If several rooms tie for most dolls, you choose which tied room to empty.",
+        ],
+      },
+      {
+        title: "Gifts and overflow",
+        items: [
+          "If you added at least 1 doll to any room this turn and kept any 1s, you may give 1 doll to another player for each kept 1. Giving is optional and happens one doll at a time.",
+          "After every turn, any player with more than 10 dolls moves the extra dolls above 10 into room 11.",
+        ],
+      },
+      {
+        title: "Winning",
+        items: [
+          "Running out of dolls during your turn does not win immediately. The win check happens only when a player's turn begins.",
+          "If a player's turn begins and that player has 0 dolls, the game ends and that player wins.",
+        ],
+      },
     ],
   },
   zh: {
@@ -191,12 +232,53 @@ const TEXT = {
         copy: "获胜者在回合开始时没有娃娃。",
       },
     },
-    rulesText: [
-      "每个回合从掷出剩余骰子开始。玩家选择一个图案保留，所有显示该图案的骰子都会被保留；同一回合内不能再次选择已经保留过的图案。",
-      "数字面会加入已保留点数。娃娃面只计算娃娃数量，不增加点数。已保留点数达到 7 或以上时，玩家可以停止；否则继续，直到没有骰子或没有新的图案可保留。",
-      "最终点数为 7、8、9、10 时，将对应房间调整为本回合掷出的娃娃数。点数为 11 或以上时，把掷出的娃娃放入 11 号房间。点数为 6 或更少时，从 7 到 10 号房间中选择娃娃最多的房间并取走全部娃娃。",
-      "如果玩家至少向房间放入了一个娃娃，并且保留了 1，则每个保留的 1 可以让玩家赠送一个自己的娃娃给其他玩家。任何玩家超过 10 个娃娃时，多出的娃娃进入 11 号房间。",
-      "只有当某名玩家的回合即将开始，并且该玩家手中没有娃娃时，该玩家才获胜。",
+    rulesSections: [
+      {
+        title: "目标",
+        items: [
+          "每名玩家开局手中有 10 个娃娃。7、8、9、10 号房间各有 1 个娃娃，11 号房间开局为空。",
+          "你的目标是把手中的娃娃清空。只有当某名玩家自己的回合开始时手中有 0 个娃娃，该玩家才获胜。",
+        ],
+      },
+      {
+        title: "骰子与保留",
+        items: [
+          "骰子的六个面分别是 1、2、3、4、一个娃娃、两个娃娃。",
+          "回合开始时掷 6 颗骰子。同一回合后续只掷还没有被保留的骰子。",
+          "每次掷骰后选择一个面保留。所有显示该面的骰子会一起被保留。",
+          "同一个面在一个回合内只能保留一次。如果当前掷出的骰子里没有可保留的新面，回合立刻结束。",
+        ],
+      },
+      {
+        title: "点数、娃娃与停止",
+        items: [
+          "数字面会加入已保留点数。娃娃面不会增加点数，只记录本回合掷出了多少娃娃。",
+          "如果已保留点数小于 7，并且还有骰子与可保留的新面，就必须继续。",
+          "如果已保留点数达到 7 或更高，可以选择停止并忽略剩余骰子。若选择继续，则掷剩余骰子。",
+        ],
+      },
+      {
+        title: "房间结算",
+        items: [
+          "最终点数为 7、8、9、10 时，把对应房间调整到本回合掷出的娃娃数。房间娃娃较少时，你从手中补入差额；房间娃娃较多时，你取回差额。",
+          "最终点数为 11 或更高时，把本回合掷出的娃娃放入 11 号房间。11 号房间不会向下调整。",
+          "最终点数为 6 或更低时，从 7 到 10 号房间中选择娃娃最多的房间，并取走该房间全部娃娃。如果多个房间并列最多，由你选择其中一个。",
+        ],
+      },
+      {
+        title: "赠送与超额",
+        items: [
+          "如果你本回合至少向任意房间放入了 1 个娃娃，并且保留过 1，那么每个被保留的 1 都可以让你把 1 个自己的娃娃赠送给另一名玩家。赠送是可选的，并且一次赠送 1 个。",
+          "每个回合结束后，所有玩家都要检查手中娃娃数量。任何玩家超过 10 个娃娃时，超过 10 的部分会进入 11 号房间。",
+        ],
+      },
+      {
+        title: "获胜",
+        items: [
+          "在自己的回合中暂时没有娃娃，并不会立刻获胜。获胜检查只发生在某名玩家的回合开始时。",
+          "如果某名玩家的回合开始时手中有 0 个娃娃，游戏立刻结束，该玩家获胜。",
+        ],
+      },
     ],
   },
 };
@@ -290,8 +372,12 @@ function App() {
           </div>
         </section>
         <div className="floating-controls">
+          <RulesButton text={text} onClick={() => setRulesOpen(true)} />
           <LanguageButton text={text} onClick={switchLanguage} />
         </div>
+        {rulesOpen && (
+          <RulesPanel onClose={() => setRulesOpen(false)} text={text} />
+        )}
       </main>
     );
   }
@@ -460,14 +546,7 @@ function App() {
           </section>
 
           <div className="floating-controls">
-            <button
-              className="rules-button"
-              onClick={() => setRulesOpen(true)}
-              aria-label={text.rules}
-            >
-              <BookOpen size={20} />
-              {text.rules}
-            </button>
+            <RulesButton text={text} onClick={() => setRulesOpen(true)} />
             <LanguageButton text={text} onClick={switchLanguage} />
           </div>
 
@@ -477,6 +556,15 @@ function App() {
         </>
       )}
     </main>
+  );
+}
+
+function RulesButton({ text, onClick }) {
+  return (
+    <button className="rules-button" onClick={onClick} aria-label={text.rules}>
+      <BookOpen size={20} />
+      {text.rules}
+    </button>
   );
 }
 
@@ -506,8 +594,15 @@ function RulesPanel({ onClose, text }) {
         </div>
 
         <div className="rules-content">
-          {text.rulesText.map((rule) => (
-            <p key={rule}>{rule}</p>
+          {text.rulesSections.map((section) => (
+            <section className="rules-section" key={section.title}>
+              <h3>{section.title}</h3>
+              <ul>
+                {section.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </section>
           ))}
         </div>
       </section>
