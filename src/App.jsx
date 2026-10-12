@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowRight,
   CircleStop,
   Gift,
   Play,
+  Power,
   RotateCcw,
   Skull,
   Users,
@@ -24,6 +25,7 @@ function diceClass(face) {
 }
 
 function App() {
+  const [screen, setScreen] = useState("start");
   const [game, setGame] = useState(null);
   const [playerCount, setPlayerCount] = useState(2);
   const [seed, setSeed] = useState("");
@@ -38,9 +40,16 @@ function App() {
           seed: seed === "" ? null : Number(seed),
         }),
       );
+      setScreen("game");
     } catch (gameError) {
       setError(gameError.message);
     }
+  }
+
+  function exitGame() {
+    setError("");
+    setGame(null);
+    setScreen("start");
   }
 
   function action(payload) {
@@ -56,11 +65,59 @@ function App() {
     });
   }
 
-  useEffect(() => {
-    startGame();
-  }, []);
-
   const prompt = useMemo(() => phasePrompt(game), [game]);
+
+  if (screen === "start") {
+    return (
+      <main className="start-screen">
+        <section className="start-panel">
+          <div>
+            <p className="eyebrow">Cursed Doll</p>
+            <h1>Cursed Doll</h1>
+            <p className="start-copy">
+              Roll, reserve patterns, move dolls through rooms, and escape the
+              table by starting your turn empty-handed.
+            </p>
+          </div>
+
+          <div className="start-settings">
+            <label>
+              Players
+              <input
+                min="1"
+                max="6"
+                type="number"
+                value={playerCount}
+                onChange={(event) => setPlayerCount(event.target.value)}
+              />
+            </label>
+            <label>
+              Seed
+              <input
+                type="number"
+                placeholder="optional"
+                value={seed}
+                onChange={(event) => setSeed(event.target.value)}
+              />
+            </label>
+          </div>
+
+          {error && <div className="error">{error}</div>}
+
+          <div className="start-actions">
+            <button className="primary" onClick={startGame}>
+              <Play size={18} />
+              Start
+            </button>
+            <button onClick={exitGame}>
+              <Power size={18} />
+              Exit
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="app-shell">
@@ -92,6 +149,10 @@ function App() {
           <button className="primary" onClick={startGame}>
             <RotateCcw size={18} />
             New Game
+          </button>
+          <button onClick={exitGame}>
+            <Power size={18} />
+            Exit
           </button>
         </div>
       </section>

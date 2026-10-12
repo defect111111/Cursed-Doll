@@ -64,6 +64,46 @@ p {
   padding: 24px;
 }
 
+.start-screen {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.start-panel {
+  background: #fffbf2;
+  border: 1px solid #d8cfbd;
+  border-radius: 8px;
+  display: grid;
+  gap: 1.4rem;
+  margin: 0 auto;
+  max-width: 560px;
+  padding: 28px;
+  width: min(100%, 560px);
+}
+
+.start-panel h1 {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.start-copy {
+  color: #5c5146;
+  margin-top: 0.75rem;
+}
+
+.start-settings,
+.start-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.start-actions button {
+  min-width: 132px;
+}
+
 .topbar {
   align-items: end;
   display: flex;
