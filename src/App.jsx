@@ -3,6 +3,7 @@ import {
   ArrowRight,
   CircleStop,
   Gift,
+  BookOpen,
   Play,
   Power,
   RotateCcw,
@@ -29,6 +30,7 @@ function App() {
   const [game, setGame] = useState(null);
   const [playerCount, setPlayerCount] = useState(2);
   const [error, setError] = useState("");
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   function startGame() {
     setError("");
@@ -47,10 +49,12 @@ function App() {
   function exitGame() {
     setError("");
     setGame(null);
+    setRulesOpen(false);
     setScreen("start");
   }
 
   function action(payload) {
+    if (rulesOpen) return;
     setError("");
     setGame((currentGame) => {
       if (!currentGame) return currentGame;
@@ -146,111 +150,168 @@ function App() {
       )}
 
       {game && (
-        <section className="game-grid">
-          <aside className="side-panel">
-            <div className="status-block">
-              <span className="status-icon">
-                {game.winner ? <Skull size={20} /> : <Users size={20} />}
-              </span>
-              <div>
-                <p>{game.winner ? "Game Over" : `Turn ${game.turn_number}`}</p>
-                <strong>
-                  {game.winner
-                    ? `Player ${game.winner} wins`
-                    : `Player ${game.current_player}`}
-                </strong>
+        <>
+          <section className="game-grid" aria-hidden={rulesOpen}>
+            <aside className="side-panel">
+              <div className="status-block">
+                <span className="status-icon">
+                  {game.winner ? <Skull size={20} /> : <Users size={20} />}
+                </span>
+                <div>
+                  <p>{game.winner ? "Game Over" : `Turn ${game.turn_number}`}</p>
+                  <strong>
+                    {game.winner
+                      ? `Player ${game.winner} wins`
+                      : `Player ${game.current_player}`}
+                  </strong>
+                </div>
               </div>
-            </div>
 
-            <h2>Players</h2>
-            <div className="player-list">
-              {Object.entries(game.player_dolls).map(([player, dolls]) => (
-                <div
-                  className={
-                    Number(player) === game.current_player
-                      ? "player active"
-                      : "player"
-                  }
-                  key={player}
-                >
-                  <span>Player {player}</span>
-                  <strong>{dolls}</strong>
-                </div>
-              ))}
-            </div>
-
-            <h2>Rooms</h2>
-            <div className="room-list">
-              {game.room_numbers.map((room) => (
-                <div className="room" key={room}>
-                  <span>Room {room}</span>
-                  <strong>{game.rooms[room]}</strong>
-                </div>
-              ))}
-            </div>
-          </aside>
-
-          <section className="table-panel">
-            <div className="prompt-row">
-              <div>
-                <p className="eyebrow">{game.phase.replace("_", " ")}</p>
-                <h2>{prompt.title}</h2>
-                <p className="prompt-copy">{prompt.copy}</p>
+              <h2>Players</h2>
+              <div className="player-list">
+                {Object.entries(game.player_dolls).map(([player, dolls]) => (
+                  <div
+                    className={
+                      Number(player) === game.current_player
+                        ? "player active"
+                        : "player"
+                    }
+                    key={player}
+                  >
+                    <span>Player {player}</span>
+                    <strong>{dolls}</strong>
+                  </div>
+                ))}
               </div>
-              {game.phase === "turn_summary" && (
-                <button
-                  className="primary"
-                  onClick={() => action({ action: "next_turn" })}
-                >
-                  <ArrowRight size={18} />
-                  Next Turn
-                </button>
-              )}
-            </div>
 
-            <div className="dice-zone">
-              <Panel title="Current Roll">
-                <DiceRow dice={game.roll} />
-              </Panel>
-              <Panel title="Kept Dice">
-                <DiceRow dice={game.kept_dice} empty="No dice kept yet" />
-                <div className="kept-stats">
-                  <span>Total {game.kept_total}</span>
-                  <span>Dolls {game.dolls_rolled}</span>
-                  <span>{game.remaining_dice} dice left</span>
+              <h2>Rooms</h2>
+              <div className="room-list">
+                {game.room_numbers.map((room) => (
+                  <div className="room" key={room}>
+                    <span>Room {room}</span>
+                    <strong>{game.rooms[room]}</strong>
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            <section className="table-panel">
+              <div className="prompt-row">
+                <div>
+                  <p className="eyebrow">{game.phase.replace("_", " ")}</p>
+                  <h2>{prompt.title}</h2>
+                  <p className="prompt-copy">{prompt.copy}</p>
                 </div>
-              </Panel>
-            </div>
+                {game.phase === "turn_summary" && (
+                  <button
+                    className="primary"
+                    onClick={() => action({ action: "next_turn" })}
+                  >
+                    <ArrowRight size={18} />
+                    Next Turn
+                  </button>
+                )}
+              </div>
 
-            <ActionPanel game={game} action={action} />
+              <div className="dice-zone">
+                <Panel title="Current Roll">
+                  <DiceRow dice={game.roll} />
+                </Panel>
+                <Panel title="Kept Dice">
+                  <DiceRow dice={game.kept_dice} empty="No dice kept yet" />
+                  <div className="kept-stats">
+                    <span>Total {game.kept_total}</span>
+                    <span>Dolls {game.dolls_rolled}</span>
+                    <span>{game.remaining_dice} dice left</span>
+                  </div>
+                </Panel>
+              </div>
+
+              <ActionPanel game={game} action={action} />
+            </section>
+
+            <aside className="log-panel">
+              <h2>Turn Log</h2>
+              <div className="log-list">
+                {game.turn_history.length === 0 && (
+                  <p className="muted">Completed turns will appear here.</p>
+                )}
+                {[...game.turn_history].reverse().map((turn) => (
+                  <div className="log-entry" key={turn.turn_number}>
+                    <strong>
+                      Turn {turn.turn_number}, Player {turn.player_index}
+                    </strong>
+                    <span>
+                      total {turn.turn_result.kept_total}, dolls{" "}
+                      {turn.dolls_rolled}, room {turn.target_room}
+                    </span>
+                    <span>
+                      placed {turn.dolls_placed}, back {turn.dolls_returned},
+                      gifted {turn.gifted_dolls}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </aside>
           </section>
 
-          <aside className="log-panel">
-            <h2>Turn Log</h2>
-            <div className="log-list">
-              {game.turn_history.length === 0 && (
-                <p className="muted">Completed turns will appear here.</p>
-              )}
-              {[...game.turn_history].reverse().map((turn) => (
-                <div className="log-entry" key={turn.turn_number}>
-                  <strong>
-                    Turn {turn.turn_number}, Player {turn.player_index}
-                  </strong>
-                  <span>
-                    total {turn.turn_result.kept_total}, dolls{" "}
-                    {turn.dolls_rolled}, room {turn.target_room}
-                  </span>
-                  <span>
-                    placed {turn.dolls_placed}, back {turn.dolls_returned},
-                    gifted {turn.gifted_dolls}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </section>
+          <button
+            className="rules-button"
+            onClick={() => setRulesOpen(true)}
+            aria-label="Open rules"
+          >
+            <BookOpen size={20} />
+            Rules
+          </button>
+
+          {rulesOpen && <RulesPanel onClose={() => setRulesOpen(false)} />}
+        </>
       )}
     </main>
+  );
+}
+
+function RulesPanel({ onClose }) {
+  return (
+    <div className="rules-overlay" role="dialog" aria-modal="true">
+      <section className="rules-panel">
+        <div className="rules-header">
+          <div>
+            <p className="eyebrow">Reference</p>
+            <h2>Rules</h2>
+          </div>
+          <button onClick={onClose}>Close</button>
+        </div>
+
+        <div className="rules-content">
+          <p>
+            Each turn begins by rolling the remaining dice. Choose one face to
+            reserve; all dice showing that face are kept, and that face cannot
+            be chosen again this turn.
+          </p>
+          <p>
+            Numeric faces add to the kept total. Doll faces add dolls but no
+            number. If the kept total reaches 7 or more, the player may stop;
+            otherwise the turn continues until no dice remain or no new face can
+            be reserved.
+          </p>
+          <p>
+            Totals 7, 8, 9, and 10 adjust the matching room to the rolled doll
+            count. Totals 11 or more add rolled dolls to room 11. Totals 6 or
+            less take all dolls from one fullest room among 7 through 10.
+          </p>
+          <p>
+            If a player placed at least one doll and kept any 1s, that player
+            may give one doll per kept 1 to another player. Any player above 10
+            dolls moves the extra dolls into room 11.
+          </p>
+          <p>
+            A player wins only when their turn is about to start and they have
+            zero dolls.
+          </p>
+        </div>
+      </section>
+    </div>
   );
 }
 
