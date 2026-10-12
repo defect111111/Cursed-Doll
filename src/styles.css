@@ -118,6 +118,26 @@ ul {
   line-height: 1;
 }
 
+.title-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.version-badge {
+  background: #eee3d0;
+  border: 1px solid #d4c5a9;
+  border-radius: 999px;
+  color: #5a4d42;
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0.38rem 0.62rem;
+  white-space: nowrap;
+}
+
 .eyebrow {
   color: #7d332c;
   font-size: 0.76rem;

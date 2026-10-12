@@ -15,6 +15,8 @@ import { createRoot } from "react-dom/client";
 import { applyGameAction, createGame } from "./gameLogic";
 import "./styles.css";
 
+const APP_VERSION = "v3.0";
+
 function diceClass(face) {
   if (face.includes("doll")) return "die doll-die";
   return "die number-die";
@@ -59,6 +61,7 @@ const TEXT = {
     close: "Close",
     reference: "Reference",
     language: "中文",
+    version: "Version",
     phaseLabels: {
       ready_to_roll: "ready to roll",
       choose_face: "choose face",
@@ -189,6 +192,7 @@ const TEXT = {
     close: "关闭",
     reference: "说明",
     language: "EN",
+    version: "版本",
     phaseLabels: {
       ready_to_roll: "准备掷骰",
       choose_face: "选择图案",
@@ -341,7 +345,10 @@ function App() {
         <section className="start-panel">
           <div>
             <p className="eyebrow">{text.brand}</p>
-            <h1>{text.brand}</h1>
+            <div className="title-row">
+              <h1>{text.brand}</h1>
+              <VersionBadge text={text} />
+            </div>
             <p className="start-copy">{text.startCopy}</p>
           </div>
 
@@ -387,7 +394,10 @@ function App() {
       <section className="topbar">
         <div>
           <p className="eyebrow">{text.brand}</p>
-          <h1>{text.table}</h1>
+          <div className="title-row">
+            <h1>{text.table}</h1>
+            <VersionBadge text={text} />
+          </div>
         </div>
         <div className="new-game">
           <label>
@@ -565,6 +575,14 @@ function RulesButton({ text, onClick }) {
       <BookOpen size={20} />
       {text.rules}
     </button>
+  );
+}
+
+function VersionBadge({ text }) {
+  return (
+    <span className="version-badge">
+      {text.version} {APP_VERSION}
+    </span>
   );
 }
 

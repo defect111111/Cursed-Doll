@@ -1,21 +1,74 @@
 # Cursed Doll
 
-A dice-and-doll table game with a command-line version and a playable local web
-frontend.
+Cursed Doll is a dice-and-doll table game with a command-line implementation,
+a static GitHub Pages web app, and CPU-only reinforcement-learning experiments.
 
-## Version
+Current version: `v3.0`
 
-Current version: `v2.0`
+Live site:
 
-`v2.0` adds the first playable web frontend: a FastAPI backend for game state,
-a Vite React table UI, local development setup, and clearer startup diagnostics.
+```text
+https://defect111111.github.io/Cursed-Doll/
+```
 
-`v1.0` is the complete command-line rule implementation with interactive choices
-for dice patterns, stopping, tied rooms, and optional doll gifts.
+## What Is In v3.0
 
-## Current Logic
+`v3.0` is the static web release:
 
-Each player starts by rolling six custom dice. The six die faces are:
+- Browser-side game engine for GitHub Pages.
+- Playable React table UI with no backend requirement.
+- English and Simplified Chinese UI.
+- Detailed in-game rules panel on the start page and play page.
+- Visible version information in the web page.
+- CPU-only AI training, evaluation, and demo scripts.
+
+## Quick Start
+
+Install frontend packages:
+
+```bash
+npm install
+```
+
+Run the web app locally:
+
+```bash
+npm run dev
+```
+
+Run the command-line game:
+
+```bash
+python -m cursed_doll.cli 2 --interactive
+```
+
+Run the test suite:
+
+```bash
+npm run test:js
+python -m pytest -q
+```
+
+Build the checked-in GitHub Pages files:
+
+```bash
+npm run build:pages
+```
+
+## Game Rules
+
+### Goal
+
+Each player starts with 10 dolls. Rooms `7`, `8`, `9`, and `10` each start with
+1 doll. Room `11` starts empty.
+
+The goal is to get rid of your dolls. A player wins only when their own turn is
+about to begin and they have 0 dolls. Reaching 0 dolls during a turn does not win
+immediately.
+
+### Dice
+
+The six die faces are:
 
 - `1`
 - `2`
@@ -24,105 +77,72 @@ Each player starts by rolling six custom dice. The six die faces are:
 - `one doll`
 - `two dolls`
 
-Only numeric faces count toward the kept total. Doll faces do not add to the total.
+Only numeric faces count toward the kept total. Doll faces do not add to the
+total; they only count how many dolls were rolled this turn.
 
-After every roll, the player keeps all dice matching one face, then rerolls the rest.
-A player can only reserve each face once. For example, after keeping `3`, that player
-cannot keep `3` again on a later roll.
-If a roll has no face that the player can newly reserve, that player's turn ends.
-If the kept dice total is 7 or more, the player may stop and ignore any remaining dice.
-Otherwise, the player continues until no dice remain.
+### Reserving Dice
 
-The default strategy first keeps a face that reaches 7 or more, then stops. If no
-face reaches 7, it keeps the largest matching group.
+At the start of a turn, the player rolls 6 dice. After each roll, the player
+chooses one face to reserve. All dice showing that face are kept together, and
+the rest can be rolled later.
 
-## Doll Rooms
+Each face can be reserved only once per turn. For example, after keeping `3`,
+that player cannot keep `3` again on a later roll in the same turn.
 
-Each player starts the game with 10 dolls. After a player's turn, the final kept dice
-produce a number total and a doll count. `one doll` counts as 1 doll, and `two dolls`
-counts as 2 dolls.
+If a roll has no face that can be newly reserved, the turn ends immediately.
 
-There are five doll rooms: `7`, `8`, `9`, `10`, and `11`.
-Rooms `7` through `10` begin with 1 doll each. Room `11` begins empty.
+### Stopping
 
-- If the final total is `7`, `8`, `9`, or `10`, the matching room is adjusted to
-  the rolled doll count. If the room has fewer dolls, the player adds the difference.
-  If the room has more dolls, the player takes the difference back.
-- If the final total is `11` or more, the player puts that many rolled dolls into
-  room `11`.
-- If the final total is `6` or less, the player takes all dolls from the fullest
-  room among `7`, `8`, `9`, and `10`. If multiple rooms are tied for most dolls,
-  the lowest-numbered tied room is chosen.
+If the kept numeric total is below 7, the player must continue whenever there are
+dice left and an available face to reserve.
+
+If the kept numeric total is 7 or higher, the player may stop and ignore all
+unkept dice. If the player continues, they roll the remaining dice.
+
+### Room Effects
+
+After the turn ends, the kept dice produce a final numeric total and a rolled
+doll count. `one doll` counts as 1 rolled doll, and `two dolls` counts as 2
+rolled dolls.
+
+- Final totals `7`, `8`, `9`, and `10` adjust the matching room to exactly the
+  rolled doll count. If the room has fewer dolls, the player adds the difference
+  from hand. If the room has more dolls, the player takes the difference back.
+- A final total of `11` or higher adds the rolled doll count into room `11`.
+  Room `11` is never adjusted downward.
+- A final total of `6` or lower makes the player take all dolls from one fullest
+  room among `7`, `8`, `9`, and `10`. If several rooms tie for most dolls, the
+  player chooses one tied room.
 
 Players cannot place more dolls than they have remaining.
-If the player kept one or more `1` faces and placed at least one doll into a room,
-the player gives one doll to another player for each kept `1`, up to the number of
-dolls the player has available. The default strategy gives these dolls to the next
-player in turn order. A one-player game has no valid recipient.
-After every turn, any player with more than 10 dolls returns the extra dolls to
-room `11`.
 
-Doll placement is resolved immediately after each player's turn. Reaching zero
-dolls does not immediately end the game. The game ends only when a player's turn
-is about to start and that player has zero dolls. That player wins. A player who
-reaches zero may still receive dolls from another player's optional gift before
-their next turn, in which case they continue playing.
+### Gifts And Overflow
 
-Run a full game with:
+If the player added at least 1 doll to any room this turn and kept any `1` faces,
+they may give 1 doll to another player for each kept `1`. Giving is optional and
+happens one doll at a time.
 
-```bash
-python -m cursed_doll.cli 2
-```
+After every turn, every player checks their hand. Any player with more than 10
+dolls moves the extra dolls above 10 into room `11`.
 
-To choose the kept face yourself after each roll, decide whether to stop after
-reaching 7 or more, choose between tied fullest rooms, and choose optional gifts:
+## Web App
 
-```bash
-python -m cursed_doll.cli 2 --interactive
-```
+The public web app is static. It runs entirely in the browser and does not need
+FastAPI, Python, a database, or a server runtime on GitHub Pages.
 
-Interactive choices are labeled with letters like `a`, `b`, and `c` so they do not
-overlap with numeric die faces. Each prompt shows the current player and the dice
-that player has kept so far. It also shows every player's remaining dolls and the
-current dolls in each room. Prompts and final results are separated with console
-dividers so each turn is easier to scan. The prompt also counts dolls in the current
-roll, where `one doll` counts as 1 and `two dolls` counts as 2. Gift prompts include
-a `Stop giving` option because giving dolls for kept `1` faces is optional.
-
-For repeatable rolls while testing:
-
-```bash
-python -m cursed_doll.cli 2 --seed 42
-```
-
-## GitHub Pages Web App
-
-This branch is organized as a static GitHub Pages web app. The playable table
-runs entirely in the browser with a small JavaScript game engine, so the public
-site does not need FastAPI, Python, or a database server.
-
-Install frontend packages:
-
-```bash
-npm install
-```
-
-Run the local web app:
+Run locally:
 
 ```bash
 npm run dev
 ```
 
-Then open `http://127.0.0.1:5173`.
-
-Build the static site:
+Build normally:
 
 ```bash
 npm run build
 ```
 
-If GitHub Pages is configured to publish from the repository branch root, refresh
-the checked-in root static files before committing:
+Build and sync the root files used by branch-root GitHub Pages:
 
 ```bash
 npm run build:pages
@@ -134,103 +154,108 @@ Preview the production build locally:
 npm run preview
 ```
 
-The Vite base path is set to `/Cursed-Doll/`, matching the expected GitHub Pages
-URL:
-
-```text
-https://defect111111.github.io/Cursed-Doll/
-```
+The Vite base path is `/Cursed-Doll/`, matching the GitHub Pages URL.
 
 GitHub Pages deployment is handled by `.github/workflows/deploy-pages.yml`.
-In the GitHub repository settings, set Pages to use GitHub Actions as the source,
-then push this branch or run the workflow manually.
+The checked-in root `index.html` and `assets/` files are also refreshed by
+`npm run build:pages` because this repository previously served Pages from the
+branch root.
 
-The FastAPI backend in `web/backend.py` is still available for local experiments,
-but the GitHub Pages web app does not call it.
+The FastAPI backend in `web/backend.py` remains available for local experiments,
+but the current GitHub Pages app does not call it.
 
-## Turn AI Training
+## Command-Line Game
 
-The first AI framework trains a small CPU-only turn optimizer. It does not try to
-win the whole game. It only plays one player's turn and tries to maximize:
+Run a full game:
 
-```text
-reward = starting dolls - ending dolls
+```bash
+python -m cursed_doll.cli 2
 ```
 
-The AI environment randomizes the player's starting dolls and room dolls, then
-lets an agent choose dice patterns, stop or continue, choose tied rooms, and give
-optional dolls. Rooms `7` through `10` are sampled from a Gaussian distribution
-with mean `1` and variance `1`, rounded to whole dolls and clipped at zero. Room
-`11` starts at `0` and is not included in the model observation because its
-existing doll count does not influence single-turn decisions. Other players are
-intentionally ignored for this first model.
+Run the interactive version:
 
-Install the optional CPU PyTorch dependency:
+```bash
+python -m cursed_doll.cli 2 --interactive
+```
+
+Use a fixed seed while testing:
+
+```bash
+python -m cursed_doll.cli 2 --seed 42
+```
+
+Interactive choices are labeled with letters so they do not overlap with numeric
+die faces. Prompts show the current player, kept dice, current room dolls, player
+doll counts, rolled doll count, tied-room choices, and optional gift choices.
+
+## AI Training
+
+The AI code is CPU-only. No NVIDIA driver or CUDA installation is required.
+
+Install optional AI dependencies:
 
 ```bash
 pip install -r requirements-ai.txt
 ```
 
-Train a small masked PPO actor-critic policy:
+Train a single-turn masked PPO actor-critic policy:
 
 ```bash
 python -m ai.train --updates 40 --episodes-per-update 512
 ```
 
-Each run writes organized local logs under `training_runs/`, including
-`config.json`, `metrics.csv`, and `summary.json`. The best model is saved to
-`models/turn_policy.pt` by default.
-
-Evaluate a saved policy against random and heuristic baselines:
+Evaluate a saved turn policy:
 
 ```bash
 python -m ai.evaluate --model-path models/turn_policy.pt --episodes 2000
 ```
 
-Show a single model-controlled turn with each decision printed:
+Show one model-controlled turn:
 
 ```bash
 python -m ai.demo --model-path models/turn_policy.pt
 ```
 
-Show a full model-controlled self-play game:
-
-```bash
-python -m ai.self_play_demo --model-path models/self_play_policy.pt
-```
-
-Evaluate a full-game self-play policy:
-
-```bash
-python -m ai.self_play_evaluate --model-path models/self_play_policy.pt --games 500
-```
-
-Train a first two-player self-play policy:
+Train a two-player self-play policy:
 
 ```bash
 python -m ai.self_play --updates 40 --games-per-update 64 --eval-games 100 --run-name self_play_first
 ```
 
-Training always uses CPU. No NVIDIA driver or CUDA installation is required.
+Evaluate a self-play policy:
 
-## Code Structure
+```bash
+python -m ai.self_play_evaluate --model-path models/self_play_policy.pt --games 500
+```
 
-- `cursed_doll/`: core game package.
-- `cursed_doll/dice.py`: die faces, die values, rolling helpers, and dice formatting.
-- `cursed_doll/player_turn.py`: player choices, stop rules, turn progression, and result formatting.
-- `cursed_doll/game.py`: player doll supply, doll rooms, and room placement rules.
+Show a self-play rollout:
+
+```bash
+python -m ai.self_play_demo --model-path models/self_play_policy.pt
+```
+
+Training runs write organized logs under `training_runs/`, including
+`config.json`, `metrics.csv`, and `summary.json`.
+
+## Project Structure
+
+- `cursed_doll/`: core Python game package.
+- `cursed_doll/dice.py`: die faces, die values, rolling helpers, and formatting.
+- `cursed_doll/player_turn.py`: player choices, stop rules, and turn progression.
+- `cursed_doll/game.py`: player doll supply, rooms, placement, gifts, and wins.
 - `cursed_doll/cli.py`: command-line entry point.
+- `src/`: React frontend for the browser table.
+- `src/gameLogic.js`: browser-side game engine used by GitHub Pages.
+- `src/gameLogic.test.mjs`: JavaScript regression tests.
 - `web/backend.py`: optional FastAPI game state API for local experiments.
-- `src/`: React frontend for the playable table UI.
-- `src/gameLogic.js`: browser-side game engine used by the GitHub Pages app.
-- `ai/`: single-turn reinforcement-learning package.
-- `ai/env.py`: turn environment with legal action masks.
-- `ai/agents.py`: random and heuristic turn baselines.
-- `ai/model.py`: small masked actor-critic network.
-- `ai/train.py`: CPU PPO trainer.
-- `ai/evaluate.py`: saved-policy evaluator.
-- `ai/demo.py`: single-turn policy rollout demo.
-- `ai/self_play.py`: two-player self-play trainer.
-- `ai/self_play_evaluate.py`: full-game self-play evaluator.
-- `ai/self_play_demo.py`: full-game self-play rollout demo.
+- `ai/`: reinforcement-learning tools.
 - `tests/`: Python regression tests.
+- `scripts/sync-pages-root.mjs`: copies Vite output to the repository root for
+  branch-root Pages publishing.
+
+## Version History
+
+- `v3.0`: static GitHub Pages web app, bilingual UI, detailed rules panel, visible
+  web version, and organized AI tooling.
+- `v2.0`: first playable web frontend and local web development setup.
+- `v1.0`: complete command-line rule implementation with interactive choices.
