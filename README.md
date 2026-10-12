@@ -121,6 +121,13 @@ Build the static site:
 npm run build
 ```
 
+If GitHub Pages is configured to publish from the repository branch root, refresh
+the checked-in root static files before committing:
+
+```bash
+npm run build:pages
+```
+
 Preview the production build locally:
 
 ```bash

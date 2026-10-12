@@ -3,6 +3,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
+    "build:pages": "npm run build && node scripts/sync-pages-root.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test:js": "node src/gameLogic.test.mjs"
   },
